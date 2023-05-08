@@ -31,9 +31,11 @@ export interface ItemApiProps {
     ORDER_TABLE_NAME: string;
     PARTNER_TABLE_NAME: string
   },
-  readonly VERIFIED_EMAIL: string;
+  readonly VERIFIED_EMAIL?: string;
 
-  readonly congitoToApiGwToLambdaRestApi: RestApi
+  readonly congitoToApiGwToLambdaRestApi: RestApi,
+  cloudWatchPolicyStatement: PolicyStatement
+
 }
 
 export class ItemApiConstruct extends Construct {
@@ -68,8 +70,9 @@ export class ItemApiConstruct extends Construct {
       existingTableObj: props.partnertable
     });
 
+    getItem.lambdaFunction.addToRolePolicy(props.cloudWatchPolicyStatement);
+
     const getItemIntegration = new LambdaIntegration(getItem.lambdaFunction);
-    // getItem.lambdaFunction.addToRolePolicy(apigwInvokePolicyStatement);
 
     const getItemRequestModel = new Model(this, "get-item-model", {
       restApi: props.congitoToApiGwToLambdaRestApi,
@@ -97,6 +100,37 @@ export class ItemApiConstruct extends Construct {
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     });
 
+
+    const orderStatus = new LambdaToDynamoDB(this, 'notifier-order-status', {
+      lambdaFunctionProps: {
+        runtime: Runtime.NODEJS_18_X,
+        code: Code.fromAsset(`${__dirname}/../lambda/`),
+        handler: 'notifier.handler',
+        timeout: Duration.seconds(15),
+        environment: {
+          ...props.lambdaEnviroment,
+          SES_EMAIL_FROM: SES_EMAIL_FROM || ""
+        }
+      },
+      existingTableObj: props.partnertable
+    });
+
+    orderStatus.lambdaFunction.addToRolePolicy(props.cloudWatchPolicyStatement);
+    const orderStatusdlq = new Queue(this, "notifier-order-status-DLQ", {
+      enforceSSL: true
+    })
+
+    new DynamoDBStreamsToLambda(this, 'notifier-order-dynamodbstreams-lambda', {
+      existingLambdaObj: orderStatus.lambdaFunction,
+      existingTableInterface: props.ordertable,
+      deploySqsDlqQueue: true,
+      sqsDlqQueueProps: {
+        deadLetterQueue: {
+          maxReceiveCount: 1,
+          queue: orderStatusdlq
+        }
+      }
+    });
     if (SES_EMAIL_FROM) {
       const region = props.env.region;
 
@@ -123,55 +157,24 @@ export class ItemApiConstruct extends Construct {
         },
         policy: generateSesPolicyForCustomResource('VerifyEmailIdentity', 'DeleteIdentity'),
       });
+      const SES_EMAIL_DOMAIN = SES_EMAIL_FROM.split('@')[1];
+
+      // 👇 Add permissions to the Lambda function to send Emails
+      orderStatus.lambdaFunction.addToRolePolicy(
+        new PolicyStatement({
+          effect: Effect.ALLOW,
+          actions: [
+            'ses:SendEmail',
+            'ses:SendRawEmail',
+            'ses:SendTemplatedEmail',
+          ],
+          resources: [
+            `arn:aws:ses:${SES_REGION}:${Stack.of(this).account
+            }:identity/*${SES_EMAIL_DOMAIN}`,
+          ],
+        }),
+      );
     }
-
-    const orderStatus = new LambdaToDynamoDB(this, 'order-status', {
-      lambdaFunctionProps: {
-        runtime: Runtime.NODEJS_18_X,
-        code: Code.fromAsset(`${__dirname}/../lambda/`),
-        handler: 'notifier.handler',
-        timeout: Duration.seconds(15),
-        environment: {
-          ...props.lambdaEnviroment,
-          SES_EMAIL_FROM: SES_EMAIL_FROM
-        }
-      },
-      existingTableObj: props.partnertable
-    });
-
-    const orderStatusdlq = new Queue(this, "Order-status-DLQ", {
-      enforceSSL: true
-    })
-
-    new DynamoDBStreamsToLambda(this, 'order-dynamodbstreams-lambda', {
-      existingLambdaObj: orderStatus.lambdaFunction,
-      existingTableInterface: props.ordertable,
-      deploySqsDlqQueue: true,
-      sqsDlqQueueProps: {
-        deadLetterQueue: {
-          maxReceiveCount: 1,
-          queue: orderStatusdlq
-        }
-      }
-    });
-
-    const SES_EMAIL_DOMAIN = SES_EMAIL_FROM.split('@')[1];
-
-    // 👇 Add permissions to the Lambda function to send Emails
-    orderStatus.lambdaFunction.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        actions: [
-          'ses:SendEmail',
-          'ses:SendRawEmail',
-          'ses:SendTemplatedEmail',
-        ],
-        resources: [
-          `arn:aws:ses:${SES_REGION}:${Stack.of(this).account
-          }:identity/*${SES_EMAIL_DOMAIN}`,
-        ],
-      }),
-    );
   }
 }
 

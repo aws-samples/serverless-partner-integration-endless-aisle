@@ -1,8 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: MIT-0
-export const handler = async (event: any) => {
 
-    if (!event.Records) {
+import { APIGatewayProxyEvent } from "aws-lambda";
+
+// SPDX-License-Identifier: MIT-0
+export const handler = async (event: APIGatewayProxyEvent) => {
+
+    if (!event.body) {
         return { statusCode: 400, body: 'invalid request, missing the parameters  in body' };
     }
     else {

@@ -38,7 +38,7 @@ export const handler = async (event: SQSEvent) => {
             [PARTNER_TABLE_PK]: requestedItem.partnerId,
         }
     }
-    console.log(JSON.stringify(params));
+    console.debug(JSON.stringify(params));
     const partnerInfo = await docClient.get(params).promise().then((data) => {
         return data.Item
     }).catch((err) => {
@@ -47,7 +47,7 @@ export const handler = async (event: SQSEvent) => {
     if (!partnerInfo) {
         return { statusCode: 400, body: `invalid partner configuration` };
     }
-    console.log(`create order - get partner info data: ${JSON.stringify(partnerInfo)}`);
+    console.debug(`create order - get partner info data: ${JSON.stringify(partnerInfo)}`);
     // Step 2 - Place order request 
 
     const host: string[] = partnerInfo.webhook.split("/");
@@ -70,7 +70,7 @@ export const handler = async (event: SQSEvent) => {
             console.log(data);
             return {
                 statusCode: 200,
-                message: `Order Placed for order id ${data} and reference item - ${requestedItem.itemId}`,
+                message: `Order Placed for order id ${data} and reference item : ${requestedItem.itemId}`,
                 orderId: `${data}`
             }
         })
@@ -79,7 +79,7 @@ export const handler = async (event: SQSEvent) => {
             const orderId = uuidv4();
             return {
                 statusCode: 200,
-                message: `Order Placed for order id ${orderId} and reference item - ${requestedItem.itemId}`,
+                message: `Order Placed for order id ${orderId} and reference item : ${requestedItem.itemId}`,
                 orderId: orderId
             }
         });
@@ -151,7 +151,6 @@ async function httpsRequest(params, postData) {
             reject(err);
         });
         if (postData) {
-            console.log("i Am here ");
             req.write(JSON.stringify(postData));
         }
         // IMPORTANT

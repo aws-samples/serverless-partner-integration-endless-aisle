@@ -4,12 +4,14 @@
 // Imports
 import { custom_resources } from 'aws-cdk-lib';
 import * as ddb from 'aws-cdk-lib/aws-dynamodb';
+import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { DDBTable } from "../common/storage/dynamoDB";
 import { Partners } from '../constant/partners';
 
 export interface DDBTableProps {
   readonly partnerMockAPIUrl: string
+  readonly cloudWatchPolicyStatement: PolicyStatement
 }
 
 export class DDBTableConstructs extends Construct {
@@ -65,6 +67,17 @@ export class DDBTableConstructs extends Construct {
       targetUtilizationPercent: 50
     });
 
+    const role = new Role(this, `${id}-customer-ddb-init-role`, {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      inlinePolicies: {
+        'CustomCloudWatchLogsPolicy': new PolicyDocument({
+          statements: [props.cloudWatchPolicyStatement],
+        })
+      }
+    })
+
+    orderTable.table.grantReadWriteData(role);
+
     Partners.forEach(partner => {
       new custom_resources.AwsCustomResource(this, `${partner.name}ddbInitData`, {
         onCreate: {
@@ -87,6 +100,8 @@ export class DDBTableConstructs extends Construct {
         policy: custom_resources.AwsCustomResourcePolicy.fromSdkCalls({
           resources: [partnerTable.table.tableArn],
         }),
+        installLatestAwsSdk: true,
+        role: role,
       })
     });
 

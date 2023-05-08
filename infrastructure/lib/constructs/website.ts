@@ -9,6 +9,7 @@ import { CfnOutput } from 'aws-cdk-lib';
 import { RestApi } from "aws-cdk-lib/aws-apigateway";
 import { GeoRestriction, OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
 import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
+import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import * as path from "path";
 
@@ -19,6 +20,10 @@ export interface WebsiteStackProps {
   readonly userpool: UserPool
   readonly client: UserPoolClient,
   readonly backendApi: RestApi,
+  env: {
+    account?: string,
+    region?: string
+  },
 }
 
 export class Website extends Construct {
@@ -32,21 +37,37 @@ export class Website extends Construct {
     const cloudfrontToS3 = new CloudFrontToS3(this, 'website-cloudfront-s3', {
       cloudFrontDistributionProps: {
         defaultRootObject: 'index.html',
-        geoRestriction: GeoRestriction.allowlist("US"),
+        geoRestriction: GeoRestriction.allowlist("US")
       }
     });
 
     // This construct can only be attached to a configured CloudFront.
-    new WafwebaclToCloudFront(this, 'weebsite-wafwebacl-cloudfront', {
+    new WafwebaclToCloudFront(this, 'website-wafwebacl-cloudfront', {
       existingCloudFrontWebDistribution: cloudfrontToS3.cloudFrontWebDistribution
     });
+
+    const role = new Role(this, `${id}-custom-bucket-deployment-role`, {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      inlinePolicies: {
+        'BucketDeploymentPolicy': new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: ["logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"],
+              resources: [`arn:aws:logs:${props.env.region}:${props.env.account}:*`],
+            })],
+        })
+      }
+    })
 
     new BucketDeployment(this, 'BucketDeployment', {
       destinationBucket: cloudfrontToS3.s3BucketInterface,
       sources: [Source.asset(path.resolve(__dirname, '../../../website/build'))],
       accessControl: BucketAccessControl.PRIVATE,
       exclude: ['node_modules', 'src'],
-      retainOnDelete: false
+      retainOnDelete: false,
+      role: role
     })
 
     const originAccessIdentity = new OriginAccessIdentity(this, 'OriginAccessIdentity');

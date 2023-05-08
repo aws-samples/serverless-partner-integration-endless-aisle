@@ -141,6 +141,7 @@ function Customer() {
                         payload: e.target.value,
                       });
                     }}
+                    size="lg"
                     value={customerDetails.email}
                     required
                     invalid={MDBInput.invalid}
@@ -156,6 +157,7 @@ function Customer() {
                         payload: e.target.value,
                       });
                     }}
+                    size="lg"
                     value={customerDetails.address}
                     required
                     invalid={MDBInput.invalid}
@@ -171,6 +173,7 @@ function Customer() {
                         payload: e.target.value,
                       });
                     }}
+                    size="sm"
                     value={customerDetails.city}
                     required
                     invalid={MDBInput.invalid}
@@ -184,23 +187,25 @@ function Customer() {
                         payload: e.target.value,
                       });
                     }}
+                    size="sm"
                     value={customerDetails.state}
-                    required
+                    required={true}
                     invalid={MDBInput.invalid}
                     validation="Please provide your State" />
                 </MDBCol>
               </MDBRow>
               <MDBRow>
                 <MDBCol>
-                  <MDBInput label='Postal Code' type='text' name="postalCode"
+                  <MDBInput label='Postal Code' type='number' name="postalCode"
                     onChange={(e) => {
                       dispatch({
                         type: "ADD_CUSTOMER_DETAILS_POSTALCODE",
                         payload: e.target.value,
                       });
                     }}
+                    size="sm"
                     value={customerDetails.postalCode}
-                    required
+                    required={true}
                     invalid={MDBInput.invalid}
                     validation="Please provide valid Zipcode" />
                 </MDBCol>
@@ -213,6 +218,7 @@ function Customer() {
                       });
                     }}
                     value={customerDetails.country}
+                    size="sm"
                     formNoValidate
                     required
                     invalid={MDBInput.invalid}

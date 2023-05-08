@@ -1,11 +1,11 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import * as AWS from 'aws-sdk';
 const docClient = new AWS.DynamoDB.DocumentClient();
 
 const ORDER_TABLE_NAME = process.env.ORDER_TABLE_NAME || '';
 const ORDER_TABLE_PK = process.env.ORDER_TABLE_PK || '';
 
-export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // Setup the parameters
     if (!event) {
         return {
@@ -21,7 +21,7 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
     console.log(`Event: ${JSON.stringify(event)}`)
     const httpMethod = event.httpMethod;
     if (httpMethod == "PATCH") {
-        if (!event.pathParameters) {
+        if (!event.pathParameters || !event.body || !event.pathParameters.id) {
             return {
                 isBase64Encoded: false,
                 statusCode: 404,
@@ -32,16 +32,13 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
                 }
             };
         }
-        console.log(`I am here `);
-        const editedItem: any = typeof event.body == 'object' ? event.body : JSON.parse(event.body);
+        const body = event.body;
+        const editedItem: { partnerId: string, orderStatus: string } = JSON.parse(body);
 
-        const orderId = event.pathParameters?.id;
+        const orderId = event.pathParameters.id;
         const { partnerId, orderStatus } = editedItem;
 
-
-        console.log(`I am here at 40 ${editedItem}`);
         if (!partnerId || !orderId || !orderStatus) {
-            console.log(`I am here at 45`);
             return {
                 isBase64Encoded: false,
                 statusCode: 404,
@@ -52,17 +49,12 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
                 }
             }
         } else {
-
-            console.log(`I am here at 57`);
-
             const editedItemProperties = Object.keys(editedItem);
             if (!editedItem || editedItemProperties.length < 1) {
                 return { statusCode: 400, body: 'invalid request, no arguments provided' };
             }
 
             const firstProperty = editedItemProperties.splice(0, 1);
-            console.log(`I am here at 57`);
-
 
             const key = { [ORDER_TABLE_PK]: orderId }
             const params = {
@@ -74,15 +66,10 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
             }
             params.ExpressionAttributeValues[`:${firstProperty}`] = editedItem[`${firstProperty}`];
 
-            console.log(`Updated Params ${params}`);
-
             editedItemProperties.forEach(property => {
                 params.UpdateExpression += `, ${property} = :${property}`;
                 params.ExpressionAttributeValues[`:${property}`] = editedItem[property];
             });
-
-            console.log(`Updated Params 2 ${params}`);
-
 
             const orderInfo = await docClient.update(params).promise().then((data) => {
                 return data
@@ -90,7 +77,7 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
                 throw new Error(`Failed to get order info ${err}`);
             });
 
-            console.log(`{ "message": ${JSON.stringify(orderInfo)}`);
+            console.info(`{ "message": ${JSON.stringify(orderInfo)}`);
             if (orderInfo) {
                 return {
                     statusCode: 200,

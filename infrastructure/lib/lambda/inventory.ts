@@ -89,7 +89,7 @@ function handleHttpPostRequest(request: mockInventoryRequest): APIGatewayProxyRe
             isBase64Encoded: false,
             body: JSON.stringify({
                 statusCode: 200,
-                message: `Order Placed for order id ${orderId} and reference item - ${itemId}`,
+                message: `Order Placed for order id ${orderId} and reference item : ${itemId}`,
                 orderId: `${orderId}`
             }),
             headers: {

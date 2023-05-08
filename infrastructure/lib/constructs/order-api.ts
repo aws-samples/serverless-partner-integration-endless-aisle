@@ -5,7 +5,7 @@ import { Duration } from 'aws-cdk-lib';
 import { AuthorizationType, AwsIntegration, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
-import { Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Code, EventSourceMapping, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
@@ -28,7 +28,8 @@ export interface OrderApiProps {
     ORDER_TABLE_NAME: string;
     PARTNER_TABLE_NAME: string
   },
-  readonly congitoToApiGwToLambdaRestApi: RestApi
+  readonly congitoToApiGwToLambdaRestApi: RestApi,
+  readonly cloudWatchPolicy: Policy
 }
 
 export class OrderApiConstruct extends Construct {
@@ -38,8 +39,6 @@ export class OrderApiConstruct extends Construct {
 
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id);
-
-    const environment = props.lambdaEnviroment
 
     /**
    * Order API
@@ -61,6 +60,9 @@ export class OrderApiConstruct extends Construct {
       existingTableObj: props.ordertable
     });
     props.partnertable.grantReadData(createOrder.lambdaFunction);
+
+
+    createOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
 
     const apigwInvokePolicyStatement: PolicyStatement = new PolicyStatement({
       effect: Effect.ALLOW,
@@ -159,6 +161,8 @@ export class OrderApiConstruct extends Construct {
     });
     props.partnertable.grantReadData(getOrder.lambdaFunction);
 
+    getOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
+
     const getOrderIntegration = new LambdaIntegration(getOrder.lambdaFunction);
 
     const getOrderRequestModel = new Model(this, "get-order-request-model", {
@@ -197,6 +201,8 @@ export class OrderApiConstruct extends Construct {
       },
       existingTableObj: props.ordertable
     });
+
+    updateOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
 
     props.partnertable.grantReadData(updateOrder.lambdaFunction);
 
