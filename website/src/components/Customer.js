@@ -87,22 +87,41 @@ function Customer() {
           email: customerDetails.email
         }
       }
+      let authToken = "";
+      if (process.env.REACT_APP_AUTHORIZATION_TOKEN.length > 0) {
+        fetch(process.env.REACT_APP_AUTH_URL + "/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(
+            body
+          ),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            authToken = data.id_token;
+            console.log(data);
+          });
+      }
 
       console.log(`body ${JSON.stringify(body)}`);
-      //"/orders/order"
-      fetch(process.env.REACT_APP_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          body
-        ),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log(data);
-        });
+      if (process.env.REACT_APP_API_URL.length > 0) {
+        fetch(process.env.REACT_APP_API_URL + "orders/order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "authorizationToken": authToken
+          },
+          body: JSON.stringify(
+            body
+          ),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log(data);
+          });
+      }
     });
 
   }

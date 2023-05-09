@@ -21,11 +21,23 @@ Mock order Partner API
 - order look up
   
 ```bash
-itemId=1&partner=Partner1&quantity=1
+- HTTP Method 
+    GET
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/inventory/itemId=1&partner=Partner1&quantity=1
 ```
 
 - send mock order
-  
+
+```bash
+- HTTP Method 
+    POST
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/inventory
+```
+ BODY
 ```json
 {"itemId":"1","partner":"Partner1","quantity":1}
 ```
@@ -35,6 +47,14 @@ Orders API
 
 - create order api /orders/order post
   
+```bash
+- HTTP Method 
+    POST
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+```
+ BODY
 ```json
 {"requestedItem":{"itemId":"1","quantity":1,"size":"1","partner":"Partner1","price":1,"partnerId":"1","sku":"1","category":"1"},"customer":{"address":"test @test.com","contact":"test","email":"test"}}
 ```
@@ -42,13 +62,27 @@ Orders API
 - Get Order api /Orders/order/{id} get
 
 ```bash
-/orders/order/1?partnerId=1&partner=Partner1`
+- HTTP Method 
+GET
+
+- URL
+
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/1?partnerId=1&partner=Partner1
 ```
 
 - Patch Order api /Orders/order/{id} PATCH
 
+```bash
+- HTTP Method 
+    PATCH
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+```
+
+BODY
 ```json
-{"partnerId":"1","orderStatus":"Completed"}`
+    {"partnerId":"1","orderStatus":"Completed"}
 ```
 
 --- 
@@ -57,5 +91,9 @@ Item API
 -  Get item api /Items/item/{id} get
   
 ```bash
-/items/item/10?partnerId=1&partner=Partner1&quantity=1
+- HTTP Method 
+    GET
+
+- URL:
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/item/10?partner=Partner1&partnerId=1&quantity=1
 ```

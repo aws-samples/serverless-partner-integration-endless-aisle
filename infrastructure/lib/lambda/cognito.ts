@@ -9,8 +9,6 @@ export const handler = async (event: APIGatewayProxyEvent) => {
         return { statusCode: 400, body: 'invalid request, missing the parameters  in body' };
     }
     else {
-        console.log(JSON.stringify(event));
         return { statusCode: 200, body: 'valid request' };
-
     }
 }

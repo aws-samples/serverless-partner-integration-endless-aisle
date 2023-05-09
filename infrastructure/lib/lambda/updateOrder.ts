@@ -18,7 +18,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             }
         };
     }
-    console.log(`Event: ${JSON.stringify(event)}`)
     const httpMethod = event.httpMethod;
     if (httpMethod == "PATCH") {
         if (!event.pathParameters || !event.body || !event.pathParameters.id) {

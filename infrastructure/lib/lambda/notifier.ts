@@ -20,8 +20,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         const record = event.Records[0];
         if (record.dynamodb) {
             if (!record.dynamodb || !record.dynamodb.NewImage) {
-                return Promise.resolve(event).then(event => {
-                    console.log(JSON.stringify(event));
+                return Promise.resolve(event).then(() => {
                     return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
                 });
             } else {
@@ -52,8 +51,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
             }
 
         } else {
-            return Promise.resolve(event).then(event => {
-                console.log(JSON.stringify(event));
+            return Promise.resolve(event).then(() => {
                 return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
             });
         }
@@ -74,7 +72,7 @@ async function sendEmail(orderId: string, email: string, partner: string, orderS
     );
     ses.config.update({ region: process.env.AWS_REGION });
 
-    const template = `Hi ${partner}, \n\n , Your customer with the email ${email} has placed an order with order id ${orderId} \n \n The status of the order has been updated to ${orderStatus} \n Please connect with customer and inform them the status of the order`;
+    const template = `Hi ${partner}, \n\n Your customer with the email ${email} has placed an order with order id ${orderId} \n \n The status of the order has been updated to ${orderStatus}. \n \n Please connect with customer for further processings. \n \n Thanks, \n AnyCompany Team`;
 
     const emailParams = {
         Destination: {

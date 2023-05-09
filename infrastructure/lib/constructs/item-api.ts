@@ -7,7 +7,7 @@ import { AuthorizationType, LambdaIntegration, Model, RestApi } from 'aws-cdk-li
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Code, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { EmailIdentity, Identity } from 'aws-cdk-lib/aws-ses';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from 'aws-cdk-lib/custom-resources';
@@ -29,7 +29,8 @@ export interface ItemApiProps {
     ORDER_TABLE_ARN: string;
     PARTNER_TABLE_ARN: string;
     ORDER_TABLE_NAME: string;
-    PARTNER_TABLE_NAME: string
+    PARTNER_TABLE_NAME: string;
+    TOKEN_PATH: string;
   },
   readonly VERIFIED_EMAIL?: string;
 
@@ -42,6 +43,7 @@ export class ItemApiConstruct extends Construct {
   readonly userPool: UserPool;
   readonly client: UserPoolClient;
   readonly apigw: RestApi;
+  readonly getItemLambda: IFunction;
 
   constructor(scope: Construct, id: string, props: ItemApiProps) {
     super(scope, id);
@@ -88,6 +90,7 @@ export class ItemApiConstruct extends Construct {
     const itemId = item.addResource('{id}');
     itemId.addMethod("GET", getItemIntegration, {
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
         "method.request.path.id": true,
         "method.request.querystring.partnerId": true,
@@ -100,6 +103,7 @@ export class ItemApiConstruct extends Construct {
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     });
 
+    this.getItemLambda = getItem.lambdaFunction
 
     const orderStatus = new LambdaToDynamoDB(this, 'notifier-order-status', {
       lambdaFunctionProps: {

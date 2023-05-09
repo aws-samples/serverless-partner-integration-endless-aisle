@@ -6,7 +6,7 @@ import { AuthorizationType, AwsIntegration, IntegrationOptions, LambdaIntegratio
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, EventSourceMapping, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, EventSourceMapping, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { CreateOrderSchema, GetOrderSchema, UpdateOrderSchema } from '../schema/apischema';
@@ -26,7 +26,8 @@ export interface OrderApiProps {
     ORDER_TABLE_ARN: string;
     PARTNER_TABLE_ARN: string;
     ORDER_TABLE_NAME: string;
-    PARTNER_TABLE_NAME: string
+    PARTNER_TABLE_NAME: string;
+    TOKEN_PATH: string;
   },
   readonly congitoToApiGwToLambdaRestApi: RestApi,
   readonly cloudWatchPolicy: Policy
@@ -36,6 +37,7 @@ export class OrderApiConstruct extends Construct {
   readonly userPool: UserPool;
   readonly client: UserPoolClient;
   readonly apigw: RestApi;
+  readonly createOrderLambda: IFunction;
 
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id);
@@ -142,6 +144,7 @@ export class OrderApiConstruct extends Construct {
         "application/json": createOrderRequestModel,
       },
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
@@ -175,6 +178,7 @@ export class OrderApiConstruct extends Construct {
 
     orderId.addMethod("GET", getOrderIntegration, {
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
         "method.request.path.id": true,
         "method.request.querystring.partner": true,
@@ -218,6 +222,7 @@ export class OrderApiConstruct extends Construct {
 
     const updateOrderRequestModelOption: MethodOptions = {
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
         "method.request.path.id": true,
       },
@@ -227,6 +232,7 @@ export class OrderApiConstruct extends Construct {
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
+    this.createOrderLambda = createOrder.lambdaFunction;
     // TODO check for request parameters
     orderId.addMethod("PATCH", updateOrderByIdIntegration, updateOrderRequestModelOption);
   }

@@ -101,6 +101,74 @@ cdk deploy WebsiteStack
 
 ## Testing
 
+### Create cognito user
+User following command to create a sample user, that you can use to generate Auth Token.
+
+```bash
+aws cognito-idp admin-create-user --user-pool-id <REACT_APP_USER_POOL_ID> --username <UserName> --user-attributes Name="email",Value="<USER_EMAIL>" Name="email_verified",Value=true
+```
+User will receive password in their email. You can use postman to generate ID_Token and call following API with token, or login into AWS account and test APIs using API GAteway's inbuilt testing page to see results.
+
+
+### Request templates
+
+---
+Orders API
+
+- create order api /orders/order post
+  
+```bash
+- HTTP Method 
+    POST
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+```
+ BODY
+```json
+{"requestedItem":{"itemId":"1","quantity":1,"size":"1","partner":"Partner1","price":1,"partnerId":"1","sku":"1","category":"1"},"customer":{"address":"test @test.com","contact":"test","email":"test"}}
+```
+
+- Get Order api /Orders/order/{id} get
+
+```bash
+- HTTP Method 
+GET
+
+- URL
+
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/1?partnerId=1&partner=Partner1
+```
+
+- Patch Order api /Orders/order/{id} PATCH
+
+```bash
+- HTTP Method 
+    PATCH
+
+- URL: 
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+```
+
+BODY
+```json
+    {"partnerId":"1","orderStatus":"Completed"}
+```
+
+--- 
+Item API
+
+-  Get item api /Items/item/{id} get
+  
+```bash
+- HTTP Method 
+    GET
+
+- URL:
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/item/10?partner=Partner1&partnerId=1&quantity=1
+```
+
+
 After the deployment CDK will output the API Gateway URL endpoint to be used for testing.
 
 - Launch URL 
