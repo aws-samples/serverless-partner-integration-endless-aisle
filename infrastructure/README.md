@@ -77,7 +77,7 @@ https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/1
     PATCH
 
 - URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/:orderId
 ```
 
 BODY

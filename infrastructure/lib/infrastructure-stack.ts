@@ -9,6 +9,7 @@ import { ParameterTier, StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { APIGatewayConstruct } from './common/apigateway/apiGateway';
+import { WebACLConstruct } from './common/webacl/webacl';
 import { DDBTableConstructs } from './constructs/ddb-tables';
 import { ItemApiConstruct } from './constructs/item-api';
 import { OrderApiConstruct } from './constructs/order-api';
@@ -37,6 +38,7 @@ export class InfrastructureStack extends Stack {
       statements: [cloudWatchPolicyStatement],
     });
 
+    const webacl = new WebACLConstruct(this, `${id}-webacl`);
     /** 
      * Create Partner API Mock versions
      */
@@ -44,6 +46,7 @@ export class InfrastructureStack extends Stack {
       apiname: 'mockInventory',
       cloudWatchPolicyStatement: cloudWatchPolicyStatement,
       TOKEN_PATH: TokenPath,
+      webacl: webacl.wafwebacl
     });
 
     NagSuppressions.addResourceSuppressions(partnerInventoryApi.api, [
@@ -167,8 +170,9 @@ export class InfrastructureStack extends Stack {
     congitoToApiGwToLambda.addAuthorizers();
 
     // This construct can only be attached to a configured API Gateway.
-    new WafwebaclToApiGateway(this, 'wafwebacl-apigateway', {
-      existingApiGatewayInterface: congitoToApiGwToLambda.apiGateway
+    new WafwebaclToApiGateway(this, `${id}-wafwebacl-apigateway`, {
+      existingApiGatewayInterface: congitoToApiGwToLambda.apiGateway,
+      existingWebaclObj: webacl.wafwebacl
     });
 
     this.userPool = congitoToApiGwToLambda.userPool;

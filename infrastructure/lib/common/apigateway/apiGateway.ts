@@ -1,12 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
+import { WafwebaclToApiGateway } from '@aws-solutions-constructs/aws-wafwebacl-apigateway';
 import { Duration } from 'aws-cdk-lib';
 import { AccessLogFormat, AuthorizationType, IdentitySource, LambdaIntegration, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel, Model, RequestAuthorizer, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool, UserPoolClient, UserPoolDomain } from 'aws-cdk-lib/aws-cognito';
 import { Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Code, Function, HttpMethod, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { LogGroup } from 'aws-cdk-lib/aws-logs';
+import { CfnWebACL } from 'aws-cdk-lib/aws-wafv2';
 import { Construct } from 'constructs';
 import { PostPartnerOrderSchema } from '../../schema/apischema';
 
@@ -15,6 +17,8 @@ export interface APIGWProps {
   cloudWatchPolicyStatement: PolicyStatement;
   cloudWatchPolicy?: Policy;
   TOKEN_PATH: string;
+  webacl: CfnWebACL;
+
 }
 
 export class APIGatewayConstruct extends Construct {
@@ -133,6 +137,11 @@ export class APIGatewayConstruct extends Construct {
       authorizationType: AuthorizationType.CUSTOM,
       authorizer: deviceApiAuthorizer,
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
+    });
+
+    new WafwebaclToApiGateway(this, `${props.apiname}-wafwebacl-apigateway`, {
+      existingApiGatewayInterface: inventoryAPI,
+      existingWebaclObj: props.webacl
     });
 
     this.api = inventoryAPI;
