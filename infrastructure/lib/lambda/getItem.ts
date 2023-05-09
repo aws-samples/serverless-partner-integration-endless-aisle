@@ -2,18 +2,9 @@
 // SPDX-License-Identifier: MIT-0
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import * as AWS from 'aws-sdk';
-import { sign } from 'aws4';
-import axios, { Method } from 'axios';
+import axios from 'axios';
+import { getParamFromSSM } from './utils/getParameter';
 const docClient = new AWS.DynamoDB.DocumentClient();
-
-interface SignedRequest {
-    method: Method;
-    service: string;
-    region: string;
-    host: string;
-    headers: Record<string, string>;
-    body: string;
-}
 
 const PARTNER_TABLE_NAME = process.env.PARTNER_TABLE_NAME || '';
 const PARTNER_TABLE_PK = process.env.PARTNER_TABLE_PK || '';
@@ -76,41 +67,33 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             }
             // Step 2 - Place order request 
 
-            const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN } = process.env
-            const host: string[] = partnerInfo.webhook.split("/");
-
-            const service: string[] = host[2].split(".");
-
-            // Sign request
-            const signed = sign({
-                method: 'GET',
-                service: `${service[1]}}`,  //`${service[0]}.${service[1]}}`,
-                region: process.env.DEFAULT_REGION,
-                host: host[2],
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }, {
-                accessKeyId: AWS_ACCESS_KEY_ID,
-                secretAccessKey: AWS_SECRET_ACCESS_KEY,
-                sessionToken: AWS_SESSION_TOKEN
-            }) as SignedRequest
-
+            if (!process.env.TOKEN_PATH) {
+                return { statusCode: 400, body: `Token path not found in partner configuration` };
+            }
+            const authorizationToken = await getParamFromSSM(process.env.TOKEN_PATH);
+            if (authorizationToken === "No Data" || authorizationToken === undefined || authorizationToken === null || authorizationToken === "") {
+                return { statusCode: 400, body: `Error getting token information from SSM` };
+            }
             const requestURL = `${partnerInfo.webhook}inventory?itemId=${itemId}&partner=${partner}&partnerId=${partnerId}&quantity=${quantity}`;
-            console.log(`requested URL ${requestURL}`);
-            const itemInfo = await axios({
-                ...signed,
-                url: requestURL
-            }).then((response) => {
+
+            const config = {
+                method: 'get',
+                maxBodyLength: Infinity,
+                url: requestURL,
+                headers: {
+                    'authorizationToken': authorizationToken.toString().trim(),
+                }
+            };
+            const itemInfo = await axios.request(config).then((response) => {
                 return response.data
             }).catch((err) => {
                 // throw new Error(`Failed to send order info ${err}`);
                 console.error(`Error connecting with Mock API sending a dummy response: ${err}`);
                 // For Sample Sending a dummy response in case of Mock error.
-                return { message: "available" }
+                return { statusCode: 400, body: "Request Failed" };
             });
             if (!itemInfo) {
-                return { statusCode: 400, body: "Item Not found" };
+                return { statusCode: 204, body: "Item Not found" };
             }
             console.log(`Item for order info : ${JSON.stringify(itemInfo)}`);
             return {

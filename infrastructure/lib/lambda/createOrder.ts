@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: MIT-0
 import { SQSEvent, SQSRecord } from 'aws-lambda';
 import * as AWS from 'aws-sdk';
-import { sign } from 'aws4';
-import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
+import { getParamFromSSM } from './utils/getParameter';
 import { ItemRequestSchema, OrderSchema, OrderStatus } from "./utils/schema";
-import https = require('https');
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 
@@ -38,7 +37,7 @@ export const handler = async (event: SQSEvent) => {
             [PARTNER_TABLE_PK]: requestedItem.partnerId,
         }
     }
-    console.log(JSON.stringify(params));
+    console.debug(JSON.stringify(params));
     const partnerInfo = await docClient.get(params).promise().then((data) => {
         return data.Item
     }).catch((err) => {
@@ -47,45 +46,49 @@ export const handler = async (event: SQSEvent) => {
     if (!partnerInfo) {
         return { statusCode: 400, body: `invalid partner configuration` };
     }
-    console.log(`create order - get partner info data: ${JSON.stringify(partnerInfo)}`);
+    console.debug(`create order - get partner info data: ${JSON.stringify(partnerInfo)}`);
     // Step 2 - Place order request 
 
-    const host: string[] = partnerInfo.webhook.split("/");
+    if (!process.env.TOKEN_PATH) {
+        return { statusCode: 400, body: `Token path not found in partner configuration` };
+    }
+    const authorizationToken = await getParamFromSSM(process.env.TOKEN_PATH);
+    if (authorizationToken === "No Data" || authorizationToken === undefined || authorizationToken === null || authorizationToken === "") {
+        return { statusCode: 400, body: `Error getting token information from SSM` };
+    }
+    const requestURL = `${partnerInfo.webhook}inventory`;
 
-    const service: string[] = host[2].split(".");
+    const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: requestURL,
+        headers: {
+            'authorizationToken': authorizationToken.toString().trim(),
+        },
+        data: requestedItem
+    };
 
-    const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN } = process.env
-
-    const orderInfo = await httpsRequest(sign({
-        service: `${service[0]}.${service[1]}`,
-        region: process.env.DEFAULT_REGION,
-        method: 'POST',
-        path: `/prod/inventory`
-    }, {
-        accessKeyId: AWS_ACCESS_KEY_ID,
-        secretAccessKey: AWS_SECRET_ACCESS_KEY,
-        sessionToken: AWS_SESSION_TOKEN
-    }), requestedItem)
+    const orderInfo = await axios(config)
         .then((data) => {
-            console.log(data);
+            console.debug(data);
+            const orderId = data.data.orderId;
             return {
                 statusCode: 200,
-                message: `Order Placed for order id ${data} and reference item - ${requestedItem.itemId}`,
-                orderId: `${data}`
+                message: `Order Placed for order id ${orderId} and reference item : ${requestedItem.itemId}`,
+                orderId: `${orderId}`
             }
         })
         .catch((error) => {
             console.error(`Error connecting with Mock API sending a dummy response : ${error}`);
-            const orderId = uuidv4();
             return {
-                statusCode: 200,
-                message: `Order Placed for order id ${orderId} and reference item - ${requestedItem.itemId}`,
-                orderId: orderId
+                statusCode: 400,
+                message: `Order did not place: ${requestedItem.itemId}`,
+                orderId: null
             }
         });
 
-    if (!orderInfo) {
-        return { statusCode: 400, body: `order placement failed` };
+    if (!orderInfo || !orderInfo.orderId) {
+        return { statusCode: 400, body: `order placement failed with message: ${orderInfo.message}` };
     }
     console.log(`Order update : ${JSON.stringify(orderInfo)}`);
 
@@ -119,42 +122,4 @@ export const handler = async (event: SQSEvent) => {
         throw new Error(`Failed to store data in DDB for order info ${err}`);
     });
     return { statusCode: 200, body: JSON.stringify(response) };
-}
-
-
-async function httpsRequest(params, postData) {
-    return new Promise((resolve, reject) => {
-        const req = https.request(params, (res) => {
-            console.log(`Params ${JSON.stringify(params)}`);
-            // reject on bad status
-            if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
-                return reject(new Error('statusCode=' + res.statusCode));
-            }
-            // cumulate data
-            let body: Uint8Array[] = [];
-            res.on('data', (chunk: Uint8Array) => body.push(chunk));
-            // resolve on end
-            res.on('end', () => {
-                try {
-                    if (res.headers['content-type'] === 'application/json') {
-                        body = JSON.parse(Buffer.concat(body).toString());
-                    }
-                } catch (e) {
-                    reject(e);
-                }
-                resolve(body);
-            });
-        });
-        // reject on request error
-        req.on('error', (err) => {
-            // This is not a "Second reject", just a different sort of failure
-            reject(err);
-        });
-        if (postData) {
-            console.log("i Am here ");
-            req.write(JSON.stringify(postData));
-        }
-        // IMPORTANT
-        req.end();
-    });
 }

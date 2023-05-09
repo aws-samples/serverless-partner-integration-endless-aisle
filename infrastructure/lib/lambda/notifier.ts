@@ -11,21 +11,16 @@ const SES_EMAIL_FROM = process.env.SES_EMAIL_FROM || "";
 
 export const handler = async (event: DynamoDBStreamEvent) => {
     if (!event.Records) {
-        return Promise.resolve(event).then(event => {
-            console.log(JSON.stringify(event));
+        return Promise.resolve(event).then(() => {
             return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
         });
     }
     else {
         // Read event from dynamoDB stream and send email using SES service to email field in event record body
         const record = event.Records[0];
-        console.log(JSON.stringify(`Record : ${JSON.stringify(record)}\n}`));
-        console.log(JSON.stringify(`Event : ${JSON.stringify(event)}\n}`));
-
         if (record.dynamodb) {
             if (!record.dynamodb || !record.dynamodb.NewImage) {
-                return Promise.resolve(event).then(event => {
-                    console.log(JSON.stringify(event));
+                return Promise.resolve(event).then(() => {
                     return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
                 });
             } else {
@@ -37,14 +32,14 @@ export const handler = async (event: DynamoDBStreamEvent) => {
                     const orderId = newImage.orderId;
                     const statusDescription = newImage.statusDescription;
                     const email = newImage.subscribers[0].email;
+                    const partner = newImage.partner;
                     console.log(`Email : ${email} \nOrderStatus : ${statusDescription} \nOrderId : ${orderId} \n`);
 
-                    if (!orderId || !email || !statusDescription)
-                        throw new Error('Properties name, email and message are required');
+                    if (!orderId || !email || !statusDescription || !partner)
+                        throw new Error('Properties orderId, email, partner and message are required');
 
-                    return await sendEmail(orderId, email, statusDescription);
+                    return await sendEmail(orderId, email, partner, statusDescription);
                 } catch (error: unknown) {
-                    console.log('ERROR is: ', error);
                     if (error instanceof Error) {
                         return JSON.stringify({ body: { error: error.message }, statusCode: 400 });
                     }
@@ -56,8 +51,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
             }
 
         } else {
-            return Promise.resolve(event).then(event => {
-                console.log(JSON.stringify(event));
+            return Promise.resolve(event).then(() => {
                 return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
             });
         }
@@ -71,14 +65,14 @@ export type ContactDetails = {
     orderStatus: string;
 };
 
-async function sendEmail(orderId: string, email: string, orderStatus: string) {
-    const subject = `Update for order ${orderId}`;
+async function sendEmail(orderId: string, email: string, partner: string, orderStatus: string) {
+    const subject = `${partner} order ${orderId} status updated`;
 
     const ses = new AWS.SES({ apiVersion: '2010-12-01' }
     );
     ses.config.update({ region: process.env.AWS_REGION });
 
-    const template = `Order ${orderId} for email ${email} \n has been updated to ${orderStatus} \n please check the status of the order`
+    const template = `Hi ${partner}, \n\n Your customer with the email ${email} has placed an order with order id ${orderId} \n \n The status of the order has been updated to ${orderStatus}. \n \n Please connect with customer for further processings. \n \n Thanks, \n AnyCompany Team`;
 
     const emailParams = {
         Destination: {
@@ -95,7 +89,7 @@ async function sendEmail(orderId: string, email: string, orderStatus: string) {
 
     try {
         const key = await ses.sendEmail(emailParams).promise();
-        console.log("MAIL SENT SUCCESSFULLY!!" + key);
+        console.log("MAIL SENT SUCCESSFULLY!!" + JSON.stringify(key));
     } catch (e) {
         console.log("FAILURE IN SENDING MAIL!!", e);
     }

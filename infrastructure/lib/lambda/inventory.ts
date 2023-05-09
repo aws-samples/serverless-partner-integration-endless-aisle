@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 import { APIGatewayProxyEvent, APIGatewayProxyEventQueryStringParameters, APIGatewayProxyResult } from 'aws-lambda';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 // Handler
 interface mockInventoryRequest {
@@ -83,13 +83,13 @@ function handleHttpPostRequest(request: mockInventoryRequest): APIGatewayProxyRe
             }
         }
     } else if (Number(itemId) < 100 && ["Partner1", "Partner2", "Partner3"].includes(partner) && Number(quantity) > 0) {
-        const orderId: string = uuidv4();
+        const orderId: string = randomUUID();
         return {
             statusCode: 200,
             isBase64Encoded: false,
             body: JSON.stringify({
                 statusCode: 200,
-                message: `Order Placed for order id ${orderId} and reference item - ${itemId}`,
+                message: `Order Placed for order id ${orderId} and reference item : ${itemId}`,
                 orderId: `${orderId}`
             }),
             headers: {

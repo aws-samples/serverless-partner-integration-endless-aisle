@@ -10,13 +10,10 @@
   "license": "MIT",
   "devDependencies": {
     "@types/aws4": "*",
-    "@types/node": "*",
-    "@types/uuid": "*"
+    "@types/node": "*"
   },
   "dependencies": {
     "aws-sdk": "*",
-    "aws4": "*",
-    "axios": "*",
-    "uuid": "*"
+    "axios": "*"
   }
 }

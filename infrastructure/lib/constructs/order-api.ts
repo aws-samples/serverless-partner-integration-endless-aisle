@@ -5,8 +5,8 @@ import { Duration } from 'aws-cdk-lib';
 import { AuthorizationType, AwsIntegration, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
-import { Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, EventSourceMapping, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Code, EventSourceMapping, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { CreateOrderSchema, GetOrderSchema, UpdateOrderSchema } from '../schema/apischema';
@@ -26,20 +26,21 @@ export interface OrderApiProps {
     ORDER_TABLE_ARN: string;
     PARTNER_TABLE_ARN: string;
     ORDER_TABLE_NAME: string;
-    PARTNER_TABLE_NAME: string
+    PARTNER_TABLE_NAME: string;
+    TOKEN_PATH: string;
   },
-  readonly congitoToApiGwToLambdaRestApi: RestApi
+  readonly congitoToApiGwToLambdaRestApi: RestApi,
+  readonly cloudWatchPolicy: Policy
 }
 
 export class OrderApiConstruct extends Construct {
   readonly userPool: UserPool;
   readonly client: UserPoolClient;
   readonly apigw: RestApi;
+  readonly createOrderLambda: IFunction;
 
   constructor(scope: Construct, id: string, props: OrderApiProps) {
     super(scope, id);
-
-    const environment = props.lambdaEnviroment
 
     /**
    * Order API
@@ -61,6 +62,9 @@ export class OrderApiConstruct extends Construct {
       existingTableObj: props.ordertable
     });
     props.partnertable.grantReadData(createOrder.lambdaFunction);
+
+
+    createOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
 
     const apigwInvokePolicyStatement: PolicyStatement = new PolicyStatement({
       effect: Effect.ALLOW,
@@ -140,6 +144,7 @@ export class OrderApiConstruct extends Construct {
         "application/json": createOrderRequestModel,
       },
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
@@ -159,6 +164,8 @@ export class OrderApiConstruct extends Construct {
     });
     props.partnertable.grantReadData(getOrder.lambdaFunction);
 
+    getOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
+
     const getOrderIntegration = new LambdaIntegration(getOrder.lambdaFunction);
 
     const getOrderRequestModel = new Model(this, "get-order-request-model", {
@@ -171,6 +178,7 @@ export class OrderApiConstruct extends Construct {
 
     orderId.addMethod("GET", getOrderIntegration, {
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
         "method.request.path.id": true,
         "method.request.querystring.partner": true,
@@ -198,6 +206,8 @@ export class OrderApiConstruct extends Construct {
       existingTableObj: props.ordertable
     });
 
+    updateOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
+
     props.partnertable.grantReadData(updateOrder.lambdaFunction);
 
     const updateOrderByIdIntegration = new LambdaIntegration(updateOrder.lambdaFunction);
@@ -212,6 +222,7 @@ export class OrderApiConstruct extends Construct {
 
     const updateOrderRequestModelOption: MethodOptions = {
       authorizationType: AuthorizationType.COGNITO,
+      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
         "method.request.path.id": true,
       },
@@ -221,6 +232,7 @@ export class OrderApiConstruct extends Construct {
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
+    this.createOrderLambda = createOrder.lambdaFunction;
     // TODO check for request parameters
     orderId.addMethod("PATCH", updateOrderByIdIntegration, updateOrderRequestModelOption);
   }

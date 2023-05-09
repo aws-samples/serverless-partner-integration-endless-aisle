@@ -1,64 +1,94 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { AuthorizationType, CfnStage, LambdaIntegration, LambdaRestApi, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, Function, HttpMethod, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Duration } from 'aws-cdk-lib';
+import { AccessLogFormat, AuthorizationType, IdentitySource, LambdaIntegration, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel, Model, RequestAuthorizer, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { UserPool, UserPoolClient, UserPoolDomain } from 'aws-cdk-lib/aws-cognito';
+import { Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Code, Function, HttpMethod, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { LogGroup } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 import { PostPartnerOrderSchema } from '../../schema/apischema';
 
 export interface APIGWProps {
-  readonly apiname: string,
+  readonly apiname: string;
+  cloudWatchPolicyStatement: PolicyStatement;
+  cloudWatchPolicy?: Policy;
+  TOKEN_PATH: string;
 }
 
-// Stack
 export class APIGatewayConstruct extends Construct {
 
   // Public variables
   public readonly api: RestApi;
+  public readonly userPool: UserPool;
+  public readonly userPoolDomain: UserPoolDomain;
+  public readonly userPoolClient: UserPoolClient;
+  readonly inventoryLambda: IFunction;
 
   // Constructor
   constructor(scope: Construct, id: string, props: APIGWProps) {
     super(scope, id);
 
-    // A Lambda function that gets an order from the database
+    const inventoryRole = new Role(this, `${props.apiname}LambdaRole`, {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com')
+    });
+
+    // add cloudwatch access policy to the Function's role
+    inventoryRole.addToPrincipalPolicy(props.cloudWatchPolicyStatement);
+
+    // A Lambda function to get inventory from partner
     const inventoryHandler = new Function(this, `${props.apiname}Lambda`, {
       runtime: Runtime.NODEJS_18_X,
       code: Code.fromAsset(`${__dirname}/../../lambda/`),
       handler: 'inventory.handler',
+      role: inventoryRole
     });
 
-    const inventoryAPI = new LambdaRestApi(this, `${props.apiname}-api`, {
+    const partnerInventoryRole = new Role(this, `${props.apiname}-partner-cognito-LambdaRole`, {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com')
+    });
+
+    // add the policy to the Function's role
+    partnerInventoryRole.addToPrincipalPolicy(props.cloudWatchPolicyStatement);
+
+    const partnerCustomAuthHandler = new Function(this, `${props.apiname}-partner-cognito-Lambda`, {
+      runtime: Runtime.NODEJS_18_X,
+      code: Code.fromAsset(`${__dirname}/../../lambda/`),
+      handler: 'partnerCognito.handler',
+      role: partnerInventoryRole,
+      environment: {
+        TOKEN_PATH: props.TOKEN_PATH
+      }
+    });
+
+    const prdLogGroup = new LogGroup(this, `${props.apiname}`);
+
+    const inventoryAPI = new LambdaRestApi(this, `${props.apiname} - api`, {
       restApiName: props.apiname,
-      handler: inventoryHandler,
+      handler: partnerCustomAuthHandler,
       description: `RestAPI to lookup inventory`,
       proxy: false,
+      deployOptions: {
+        loggingLevel: MethodLoggingLevel.INFO,
+        accessLogDestination: new LogGroupLogDestination(prdLogGroup),
+        accessLogFormat: AccessLogFormat.jsonWithStandardFields()
+      }
     });
 
-    const inventoryResource = inventoryAPI.root.addResource("inventory", {
-      defaultCorsPreflightOptions: {
-        allowOrigins: ['*']
-      }
+    const inventoryResource = inventoryAPI.root.addResource("inventory");
+
+    new RequestValidator(this, `${id} - inventory - request - validator`, {
+      restApi: inventoryAPI,
+      // the properties below are optional
+      requestValidatorName: 'inventoryRequestValidator',
+      validateRequestBody: true,
+      validateRequestParameters: true,
     });
 
     const inventoryIntegration = new LambdaIntegration(inventoryHandler);
 
-    const getOrderInventoryRequestOptions: MethodOptions = {
-      authorizationType: AuthorizationType.IAM,
-      requestParameters: {
-        "method.request.querystring.itemId": true,
-        "method.request.querystring.partner": true,
-        "method.request.querystring.quantity": true,
-      },
-      requestValidatorOptions: {
-        requestValidatorName: `${props.apiname}get-inv-req-querystring-validator`,
-        validateRequestParameters: true,
-        validateRequestBody: false,
-      },
-    }
-
-    const postInventoryOrderModel = new Model(this, `${props.apiname}post-order-inventory-model-validator`, {
+    const postInventoryOrderModel = new Model(this, `${props.apiname}post - order - inventory - model - validator`, {
       restApi: inventoryAPI,
       contentType: "application/json",
       description: "To validate the order request body",
@@ -66,50 +96,46 @@ export class APIGatewayConstruct extends Construct {
       schema: PostPartnerOrderSchema,
     });
 
-    const postInvetoryRequestOptions: MethodOptions = {
+    const deviceApiAuthorizer = new RequestAuthorizer(this, 'deviceApiAuthorizer', {
+      handler: partnerCustomAuthHandler,
+      resultsCacheTtl: Duration.seconds(0),
+      identitySources: [IdentitySource.header('authorizationToken')]
+    });
+
+    inventoryResource.addMethod(HttpMethod.GET, inventoryIntegration, {
+      authorizationType: AuthorizationType.CUSTOM,
+      authorizer: deviceApiAuthorizer,
+      requestParameters: {
+        "method.request.querystring.itemId": true,
+        "method.request.querystring.partner": true,
+        "method.request.querystring.quantity": true,
+      },
+      requestValidatorOptions: {
+        requestValidatorName: `${props.apiname}get - inv - req - querystring - validator`,
+        validateRequestParameters: true,
+        validateRequestBody: false,
+      }
+    });
+
+    inventoryResource.addMethod(HttpMethod.POST, inventoryIntegration, {
       requestValidator: new RequestValidator(
         this,
         "post-order-inventory-body-validator",
         {
           restApi: inventoryAPI,
-          requestValidatorName: `${props.apiname}post-order-req-inventory-validator`,
+          requestValidatorName: `${props.apiname}post - order - req - inventory - validator`,
           validateRequestBody: true,
         }
       ),
       requestModels: {
         "application/json": postInventoryOrderModel,
       },
-      authorizationType: AuthorizationType.IAM,
+      authorizationType: AuthorizationType.CUSTOM,
+      authorizer: deviceApiAuthorizer,
       methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
-    }
-
-    inventoryResource.addMethod(HttpMethod.GET, inventoryIntegration, getOrderInventoryRequestOptions);
-
-    inventoryResource.addMethod(HttpMethod.POST, inventoryIntegration, postInvetoryRequestOptions);
-
-    this.api = inventoryAPI;
-
-    const stage = inventoryAPI.deploymentStage?.node.defaultChild as CfnStage;
-
-    const logGroup = new LogGroup(inventoryAPI, 'AccessLogs', {
-      retention: RetentionDays.ONE_MONTH, // Keep logs for 30 days
     });
 
-    stage.accessLogSetting = {
-      destinationArn: logGroup.logGroupArn,
-      format: JSON.stringify({
-        requestId: '$context.requestId',
-        userAgent: '$context.identity.userAgent',
-        sourceIp: '$context.identity.sourceIp',
-        requestTime: '$context.requestTime',
-        httpMethod: '$context.httpMethod',
-        path: '$context.path',
-        status: '$context.status',
-        responseLength: '$context.responseLength',
-      }),
-    };
-
-    logGroup.grantWrite(new ServicePrincipal('apigateway.amazonaws.com'));
-
+    this.api = inventoryAPI;
+    this.inventoryLambda = partnerCustomAuthHandler
   }
 }

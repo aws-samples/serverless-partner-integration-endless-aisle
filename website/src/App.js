@@ -6,7 +6,6 @@ import Cart from "./components/Cart";
 import Customer from "./components/Customer";
 import Products from "./components/Products";
 import Search from "./components/Search";
-console.log(process.env)
 
 function App() {
   return (
