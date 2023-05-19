@@ -88,7 +88,7 @@ function Customer() {
         }
       }
       API.post('orders', 'orders', { body: body }).then(response => {
-        console.log(`Res : ${JSON.stringify(response)}`);
+        console.log(`Order Submitted Successfully for ${response.SendMessageResponse.SendMessageResult.MessageId}`);
       }).catch(error => { console.log(`Error:  ${JSON.stringify(error)}`) });
 
     });

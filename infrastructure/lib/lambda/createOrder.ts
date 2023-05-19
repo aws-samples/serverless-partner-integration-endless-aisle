@@ -44,7 +44,6 @@ export const handler = async (event: SQSEvent) => {
             [PARTNER_TABLE_PK]: requestedItem.partnerId,
         }
     }
-    console.debug(JSON.stringify(params));
     const partnerInfo = await docClient.get(params).promise().then((data) => {
         return data.Item
     }).catch((err) => {
@@ -98,7 +97,6 @@ export const handler = async (event: SQSEvent) => {
 
     const orderInfo = await axios(config)
         .then((data) => {
-            console.debug(data);
             const orderId = data.data.orderId;
             return {
                 statusCode: 200,

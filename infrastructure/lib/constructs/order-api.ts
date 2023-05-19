@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT-0
 import { LambdaToDynamoDB } from '@aws-solutions-constructs/aws-lambda-dynamodb';
 import { Duration } from 'aws-cdk-lib';
-import { AuthorizationType, AwsIntegration, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { AuthorizationType, AwsIntegration, Cors, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, EventSourceMapping, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, EventSourceMapping, HttpMethod, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { CreateOrderSchema, GetOrderSchema, UpdateOrderSchema } from '../schema/apischema';
@@ -74,7 +74,20 @@ export class OrderApiConstruct extends Construct {
 
     createOrder.lambdaFunction.addToRolePolicy(apigwInvokePolicyStatement);
 
-    const orders = props.congitoToApiGwToLambdaRestApi.root.addResource('orders');
+    const orders = props.congitoToApiGwToLambdaRestApi.root.addResource('orders', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token'
+        ],
+        allowMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS],
+        allowCredentials: true
+      }
+    });
 
     const order = orders.addResource('{id}');
 

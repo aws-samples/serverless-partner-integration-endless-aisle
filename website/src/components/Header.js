@@ -32,6 +32,11 @@ const Header = ({ signOut }) => {
         <Navbar.Text>
           <Link to="/">Lookup Partner</Link>
         </Navbar.Text>
+        {useLocation().pathname.split("/")[1] !== "products" && (
+          <Navbar.Text>
+            <Link to="/orders">Lookup Orders</Link>
+          </Navbar.Text>
+        )}
         {useLocation().pathname.split("/")[1] === "products" && (
           <Navbar.Text className="search">
             <FormControl

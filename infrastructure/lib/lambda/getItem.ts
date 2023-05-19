@@ -87,9 +87,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             const itemInfo = await axios.request(config).then((response) => {
                 return response.data
             }).catch((err) => {
-                // throw new Error(`Failed to send order info ${err}`);
                 console.error(`Error connecting with Mock API sending a dummy response: ${err}`);
-                // For Sample Sending a dummy response in case of Mock error.
                 return { statusCode: 400, body: "Request Failed" };
             });
             if (!itemInfo) {

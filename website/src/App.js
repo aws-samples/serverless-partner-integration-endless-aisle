@@ -6,6 +6,7 @@ import Cart from "./components/Cart";
 import Customer from "./components/Customer";
 import Products from "./components/Products";
 import Search from "./components/Search";
+import Order from "./components/Order";
 import { Amplify, Auth } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
 import { Authenticator } from '@aws-amplify/ui-react';
@@ -63,6 +64,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/search" element={<Search />} />
+                  <Route path="/orders" element={<Order />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/customer" element={<Customer />} />

@@ -67,7 +67,7 @@ GET
 
 - URL
 
-https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partnerId=1&partner=Partner1
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partner=Partner1
 ```
 
 - Patch Order api /orders/{id} PATCH

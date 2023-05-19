@@ -48,7 +48,7 @@ export class Website extends Construct {
       corsBehavior: {
         accessControlAllowCredentials: false,
         accessControlAllowHeaders: ['*'],
-        accessControlAllowMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS],
+        accessControlAllowMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS, HttpMethod.PATCH],
         accessControlAllowOrigins: ['*'],
         accessControlMaxAge: Duration.seconds(600),
         originOverride: true,

@@ -107,7 +107,12 @@ User following command to create a sample user, that you can use to generate Aut
 ```bash
 aws cognito-idp admin-create-user --user-pool-id <REACT_APP_USER_POOL_ID> --username <UserName> --user-attributes Name="email",Value="<USER_EMAIL>" Name="email_verified",Value=true
 ```
-User will receive password in their email. You can use postman to generate ID_Token and call following API with token, or login into AWS account and test APIs using API GAteway's inbuilt testing page to see results.
+- User will receive password in their email.
+- Open CloudFront URL in a web browser. Login to the website with username and password. 
+- Use features like Partner Lookup, Product search, Placing and order, and Order Lookup etc.
+- If you have set up email correctly while setting the infrastructure, you will receive and email in the given email address for every order.
+- Please approve email link received in email address.
+- You can also use postman to generate ID_Token and call following API with token, or login into AWS account and test APIs using API GAteway's inbuilt testing page to see results.
 
 
 ### Request templates
@@ -137,7 +142,7 @@ GET
 
 - URL
 
-https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partnerId=1&partner=Partner1
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partner=Partner1
 ```
 
 - Patch Order api /orders/{id} PATCH

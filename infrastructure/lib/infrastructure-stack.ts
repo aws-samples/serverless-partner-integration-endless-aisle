@@ -215,7 +215,9 @@ export class InfrastructureStack extends Stack {
 
 
     NagSuppressions.addResourceSuppressions(scope, [
-      { id: 'AwsSolutions-L1', reason: 'AWS Cloudformation custom resource creates Nodev16 version lambda instead of Node18' }
+      { id: 'AwsSolutions-L1', reason: 'AWS Cloudformation custom resource creates Nodev16 version lambda instead of Node18' },
+      { id: 'AwsSolutions-APIG4', reason: 'Options methods are not not behind Authorizer' },
+      { id: 'AwsSolutions-COG4', reason: 'Options method are not not behind Authorizer' }
     ], true);
   }
 }
