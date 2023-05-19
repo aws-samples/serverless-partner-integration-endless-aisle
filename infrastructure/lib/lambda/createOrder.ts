@@ -22,7 +22,14 @@ interface requestOrderParmas {
 export const handler = async (event: SQSEvent) => {
 
     if (!event.Records) {
-        return { statusCode: 400, body: 'invalid request, missing the parameters  in body' };
+        return {
+            statusCode: 400,
+            body: 'invalid request, missing the parameters  in body',
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        };
     }
     const records: SQSRecord[] = event.Records;
     const record = records[0];
@@ -37,24 +44,44 @@ export const handler = async (event: SQSEvent) => {
             [PARTNER_TABLE_PK]: requestedItem.partnerId,
         }
     }
-    console.debug(JSON.stringify(params));
     const partnerInfo = await docClient.get(params).promise().then((data) => {
         return data.Item
     }).catch((err) => {
         throw new Error(`Failed to get partner info ${err}`);
     });
     if (!partnerInfo) {
-        return { statusCode: 400, body: `invalid partner configuration` };
+        return {
+            statusCode: 400,
+            body: `invalid partner configuration`,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        };
     }
     console.debug(`create order - get partner info data: ${JSON.stringify(partnerInfo)}`);
     // Step 2 - Place order request 
 
     if (!process.env.TOKEN_PATH) {
-        return { statusCode: 400, body: `Token path not found in partner configuration` };
+        return {
+            statusCode: 400,
+            body: `Token path not found in partner configuration`,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        };
     }
     const authorizationToken = await getParamFromSSM(process.env.TOKEN_PATH);
     if (authorizationToken === "No Data" || authorizationToken === undefined || authorizationToken === null || authorizationToken === "") {
-        return { statusCode: 400, body: `Error getting token information from SSM` };
+        return {
+            statusCode: 400,
+            body: `Error getting token information from SSM`,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        };
     }
     const requestURL = `${partnerInfo.webhook}inventory`;
 
@@ -70,12 +97,15 @@ export const handler = async (event: SQSEvent) => {
 
     const orderInfo = await axios(config)
         .then((data) => {
-            console.debug(data);
             const orderId = data.data.orderId;
             return {
                 statusCode: 200,
                 message: `Order Placed for order id ${orderId} and reference item : ${requestedItem.itemId}`,
-                orderId: `${orderId}`
+                orderId: `${orderId}`,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
             }
         })
         .catch((error) => {
@@ -83,12 +113,23 @@ export const handler = async (event: SQSEvent) => {
             return {
                 statusCode: 400,
                 message: `Order did not place: ${requestedItem.itemId}`,
-                orderId: null
+                orderId: null,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
             }
         });
 
     if (!orderInfo || !orderInfo.orderId) {
-        return { statusCode: 400, body: `order placement failed with message: ${orderInfo.message}` };
+        return {
+            statusCode: 400,
+            body: `order placement failed with message: ${orderInfo.message}`,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        };
     }
     console.log(`Order update : ${JSON.stringify(orderInfo)}`);
 
@@ -121,5 +162,12 @@ export const handler = async (event: SQSEvent) => {
     }).catch((err) => {
         throw new Error(`Failed to store data in DDB for order info ${err}`);
     });
-    return { statusCode: 200, body: JSON.stringify(response) };
+    return {
+        statusCode: 200,
+        body: JSON.stringify(response),
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        }
+    };
 }

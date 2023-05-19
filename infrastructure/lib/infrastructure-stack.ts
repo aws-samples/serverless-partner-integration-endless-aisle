@@ -63,7 +63,6 @@ export class InfrastructureStack extends Stack {
 
     // Setup the API with Cognito user pool
     const congitoToApiGwToLambda = new CognitoToApiGatewayToLambda(this, 'endless-aisle-api', {
-      // existingLambdaObj: createOrder.lambdaFunction,
       lambdaFunctionProps: {
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/lambda/`),
@@ -201,19 +200,24 @@ export class InfrastructureStack extends Stack {
     accessToken.grantRead(orderapi.createOrderLambda);
     accessToken.grantRead(itemapi.getItemLambda);
 
-    new CfnOutput(this, 'EndlessAisleConfig', {
-      value: JSON.stringify({
-        'REACT_APP_USER_POOL_ID': this.userPool.userPoolId,
-        'REACT_APP_USER_POOL_CLIENT_ID': this.client.userPoolClientId,
-        'REACT_APP_API_URL': this.apigw.url,
-        'REACT_APP_AUTHORIZATION_URL': `https://${endlessuserPoolDomain.domainName}.auth.${this.region}.amazoncognito.com/login`,
-        'REACT_APP_AWS_REGION': this.region
-      })
+    new CfnOutput(this, 'REACT_APP_USER_POOL_ID', {
+      value: this.userPool.userPoolId
+    });
+    new CfnOutput(this, 'REACT_APP_USER_POOL_CLIENT_ID', {
+      value: this.client.userPoolClientId,
+    });
+    new CfnOutput(this, 'REACT_APP_API_URL', {
+      value: this.apigw.url,
+    });
+    new CfnOutput(this, 'REACT_APP_AWS_REGION', {
+      value: this.region
     });
 
 
     NagSuppressions.addResourceSuppressions(scope, [
-      { id: 'AwsSolutions-L1', reason: 'AWS Cloudformation custom resource creates Nodev16 version lambda instead of Node18' }
+      { id: 'AwsSolutions-L1', reason: 'AWS Cloudformation custom resource creates Nodev16 version lambda instead of Node18' },
+      { id: 'AwsSolutions-APIG4', reason: 'Options methods are not not behind Authorizer' },
+      { id: 'AwsSolutions-COG4', reason: 'Options method are not not behind Authorizer' }
     ], true);
   }
 }

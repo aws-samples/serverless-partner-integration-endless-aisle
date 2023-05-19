@@ -13,7 +13,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CartState } from "../context/Context";
 import "./styles.css";
 
-const Header = () => {
+const Header = ({ signOut }) => {
   const {
     state: { cart },
     dispatch,
@@ -32,6 +32,11 @@ const Header = () => {
         <Navbar.Text>
           <Link to="/">Lookup Partner</Link>
         </Navbar.Text>
+        {useLocation().pathname.split("/")[1] !== "products" && (
+          <Navbar.Text>
+            <Link to="/orders">Lookup Orders</Link>
+          </Navbar.Text>
+        )}
         {useLocation().pathname.split("/")[1] === "products" && (
           <Navbar.Text className="search">
             <FormControl
@@ -95,6 +100,9 @@ const Header = () => {
               </Dropdown.Menu>
             </Dropdown>
           </Nav>)}
+        <Button color="inherit" onClick={signOut}>
+          Sign out
+        </Button>
       </Container>
     </Navbar>
   );

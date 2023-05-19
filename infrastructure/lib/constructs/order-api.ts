@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT-0
 import { LambdaToDynamoDB } from '@aws-solutions-constructs/aws-lambda-dynamodb';
 import { Duration } from 'aws-cdk-lib';
-import { AuthorizationType, AwsIntegration, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { AuthorizationType, AwsIntegration, Cors, IntegrationOptions, LambdaIntegration, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, EventSourceMapping, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, EventSourceMapping, HttpMethod, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { CreateOrderSchema, GetOrderSchema, UpdateOrderSchema } from '../schema/apischema';
@@ -74,10 +74,22 @@ export class OrderApiConstruct extends Construct {
 
     createOrder.lambdaFunction.addToRolePolicy(apigwInvokePolicyStatement);
 
-    const orders = props.congitoToApiGwToLambdaRestApi.root.addResource('orders');
+    const orders = props.congitoToApiGwToLambdaRestApi.root.addResource('orders', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token'
+        ],
+        allowMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS],
+        allowCredentials: true
+      }
+    });
 
-    const order = orders.addResource('order');
-    const orderId = order.addResource('{id}');
+    const order = orders.addResource('{id}');
 
     const orderdlq = new Queue(this, "Order-DLQ", {
       enforceSSL: true
@@ -101,7 +113,15 @@ export class OrderApiConstruct extends Construct {
       requestTemplates: {
         'application/json': 'Action=SendMessage&QueueUrl=$util.urlEncode("' + orderqueue.queueUrl + '")&MessageBody=$util.urlEncode($input.body)'
       },
-      integrationResponses: [{ statusCode: '200' }]
+      integrationResponses: [{
+        statusCode: "200",
+        responseParameters: {
+          "method.response.header.Access-Control-Allow-Methods": "'GET,POST,PATCH,OPTIONS'",
+          "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,x-api-key,x-amz-security-token,Auth'",
+          "method.response.header.Access-Control-Allow-Origin": "'*'"
+        }
+      }
+      ]
     };
 
     //Create SQS intergration for DynamoDB    
@@ -145,10 +165,16 @@ export class OrderApiConstruct extends Construct {
       },
       authorizationType: AuthorizationType.COGNITO,
       authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
-      methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
+      methodResponses: [{
+        statusCode: '200', responseParameters: {
+          "method.response.header.Access-Control-Allow-Headers": true,
+          "method.response.header.Access-Control-Allow-Methods": true,
+          "method.response.header.Access-Control-Allow-Origin": true
+        }
+      }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
-    order.addMethod("POST", createOrderIntegration, createOrderRequestOptions);
+    orders.addMethod("POST", createOrderIntegration, createOrderRequestOptions);
 
 
     // A Lambda function that gets an order from the database
@@ -176,7 +202,7 @@ export class OrderApiConstruct extends Construct {
       schema: GetOrderSchema
     });
 
-    orderId.addMethod("GET", getOrderIntegration, {
+    order.addMethod("GET", getOrderIntegration, {
       authorizationType: AuthorizationType.COGNITO,
       authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {
@@ -191,7 +217,13 @@ export class OrderApiConstruct extends Construct {
       requestModels: {
         "application/json": getOrderRequestModel,
       },
-      methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
+      methodResponses: [{
+        statusCode: '200', responseParameters: {
+          "method.response.header.Access-Control-Allow-Headers": true,
+          "method.response.header.Access-Control-Allow-Methods": true,
+          "method.response.header.Access-Control-Allow-Origin": true
+        }
+      }, { statusCode: '400' }, { statusCode: '500' }]
     });
 
     // A Lambda function that updates an order from the database
@@ -229,11 +261,16 @@ export class OrderApiConstruct extends Construct {
       requestModels: {
         "application/json": updateOrderRequestModel,
       },
-      methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }]
+      methodResponses: [{
+        statusCode: '200', responseParameters: {
+          "method.response.header.Access-Control-Allow-Headers": true,
+          "method.response.header.Access-Control-Allow-Methods": true,
+          "method.response.header.Access-Control-Allow-Origin": true
+        }
+      }, { statusCode: '400' }, { statusCode: '500' }]
     }
 
     this.createOrderLambda = createOrder.lambdaFunction;
-    // TODO check for request parameters
-    orderId.addMethod("PATCH", updateOrderByIdIntegration, updateOrderRequestModelOption);
+    order.addMethod("PATCH", updateOrderByIdIntegration, updateOrderRequestModelOption);
   }
 }

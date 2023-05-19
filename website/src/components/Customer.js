@@ -4,7 +4,7 @@ import { MDBInput, MDBCard, MDBCardBody, MDBCardHeader, MDBCol, MDBRow, MDBTypog
 import { CartState } from "../context/Context";
 import SubHeader from "./SubHeader";
 import { Link } from "react-router-dom";
-
+import { API } from "aws-amplify";
 
 function Customer() {
   const {
@@ -87,41 +87,10 @@ function Customer() {
           email: customerDetails.email
         }
       }
-      let authToken = "";
-      if (process.env.REACT_APP_AUTHORIZATION_TOKEN.length > 0) {
-        fetch(process.env.REACT_APP_AUTH_URL + "/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(
-            body
-          ),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            authToken = data.id_token;
-            console.log(data);
-          });
-      }
+      API.post('orders', 'orders', { body: body }).then(response => {
+        console.log(`Order Submitted Successfully for ${response.SendMessageResponse.SendMessageResult.MessageId}`);
+      }).catch(error => { console.log(`Error:  ${JSON.stringify(error)}`) });
 
-      console.log(`body ${JSON.stringify(body)}`);
-      if (process.env.REACT_APP_API_URL.length > 0) {
-        fetch(process.env.REACT_APP_API_URL + "orders/order", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "authorizationToken": authToken
-          },
-          body: JSON.stringify(
-            body
-          ),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            console.log(data);
-          });
-      }
     });
 
   }

@@ -107,7 +107,12 @@ User following command to create a sample user, that you can use to generate Aut
 ```bash
 aws cognito-idp admin-create-user --user-pool-id <REACT_APP_USER_POOL_ID> --username <UserName> --user-attributes Name="email",Value="<USER_EMAIL>" Name="email_verified",Value=true
 ```
-User will receive password in their email. You can use postman to generate ID_Token and call following API with token, or login into AWS account and test APIs using API GAteway's inbuilt testing page to see results.
+- User will receive password in their email.
+- Open CloudFront URL in a web browser. Login to the website with username and password. 
+- Use features like Partner Lookup, Product search, Placing and order, and Order Lookup etc.
+- If you have set up email correctly while setting the infrastructure, you will receive and email in the given email address for every order.
+- Please approve email link received in email address.
+- You can also use postman to generate ID_Token and call following API with token, or login into AWS account and test APIs using API GAteway's inbuilt testing page to see results.
 
 
 ### Request templates
@@ -115,21 +120,21 @@ User will receive password in their email. You can use postman to generate ID_To
 ---
 Orders API
 
-- create order api /orders/order post
+- create order api /orders post
   
 ```bash
 - HTTP Method 
     POST
 
 - URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders
 ```
  BODY
 ```json
 {"requestedItem":{"itemId":"1","quantity":1,"size":"1","partner":"Partner1","price":1,"partnerId":"1","sku":"1","category":"1"},"customer":{"address":"test @test.com","contact":"test","email":"test"}}
 ```
 
-- Get Order api /Orders/order/{id} get
+- Get Order api /orders/{id} get
 
 ```bash
 - HTTP Method 
@@ -137,17 +142,17 @@ GET
 
 - URL
 
-https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/1?partnerId=1&partner=Partner1
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partner=Partner1
 ```
 
-- Patch Order api /Orders/order/{id} PATCH
+- Patch Order api /orders/{id} PATCH
 
 ```bash
 - HTTP Method 
     PATCH
 
 - URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders
 ```
 
 BODY
@@ -158,14 +163,14 @@ BODY
 --- 
 Item API
 
--  Get item api /Items/item/{id} get
+-  Get item api /items/{id} get
   
 ```bash
 - HTTP Method 
     GET
 
 - URL:
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/item/10?partner=Partner1&partnerId=1&quantity=1
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/10?partner=Partner1&partnerId=1&quantity=1
 ```
 
 

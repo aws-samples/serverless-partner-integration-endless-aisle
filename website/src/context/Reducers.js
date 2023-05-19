@@ -76,6 +76,8 @@ export const productReducer = (state, action) => {
       return { ...state, searchQuery: action.payload };
     case "FILTER_BY_SEARCH_SKU":
       return { ...state, searchSkuQuery: action.payload };
+    case "LOOKUP_ORDER":
+      return { ...state, searchOrderQuery: action.payload };
     case "CLEAR_FILTERS":
       return { byStock: false, byFastDelivery: false, byRating: 0 };
     default:
