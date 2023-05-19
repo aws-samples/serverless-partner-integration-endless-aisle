@@ -85,10 +85,9 @@ export class ItemApiConstruct extends Construct {
     });
 
     const items = props.congitoToApiGwToLambdaRestApi.root.addResource('items');
-    const item = items.addResource('item');
 
-    const itemId = item.addResource('{id}');
-    itemId.addMethod("GET", getItemIntegration, {
+    const item = items.addResource('{id}');
+    item.addMethod("GET", getItemIntegration, {
       authorizationType: AuthorizationType.COGNITO,
       authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
       requestParameters: {

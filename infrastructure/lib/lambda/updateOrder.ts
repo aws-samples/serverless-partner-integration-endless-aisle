@@ -50,7 +50,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         } else {
             const editedItemProperties = Object.keys(editedItem);
             if (!editedItem || editedItemProperties.length < 1) {
-                return { statusCode: 400, body: 'invalid request, no arguments provided' };
+                return {
+                    statusCode: 400,
+                    body: 'invalid request, no arguments provided',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                };
             }
 
             const firstProperty = editedItemProperties.splice(0, 1);

@@ -115,21 +115,21 @@ User will receive password in their email. You can use postman to generate ID_To
 ---
 Orders API
 
-- create order api /orders/order post
+- create order api /orders post
   
 ```bash
 - HTTP Method 
     POST
 
 - URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders
 ```
  BODY
 ```json
 {"requestedItem":{"itemId":"1","quantity":1,"size":"1","partner":"Partner1","price":1,"partnerId":"1","sku":"1","category":"1"},"customer":{"address":"test @test.com","contact":"test","email":"test"}}
 ```
 
-- Get Order api /Orders/order/{id} get
+- Get Order api /orders/{id} get
 
 ```bash
 - HTTP Method 
@@ -137,17 +137,17 @@ GET
 
 - URL
 
-https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order/1?partnerId=1&partner=Partner1
+https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partnerId=1&partner=Partner1
 ```
 
-- Patch Order api /Orders/order/{id} PATCH
+- Patch Order api /orders/{id} PATCH
 
 ```bash
 - HTTP Method 
     PATCH
 
 - URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/order
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders
 ```
 
 BODY
@@ -158,14 +158,14 @@ BODY
 --- 
 Item API
 
--  Get item api /Items/item/{id} get
+-  Get item api /items/{id} get
   
 ```bash
 - HTTP Method 
     GET
 
 - URL:
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/item/10?partner=Partner1&partnerId=1&quantity=1
+    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/items/10?partner=Partner1&partnerId=1&quantity=1
 ```
 
 

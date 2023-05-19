@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@aws-amplify/ui-react": "^4.6.1",
+    "aws-amplify": "^5.2.0",
     "bootstrap": "5.2.3",
     "dotenv": "^16.0.3",
     "mdb-react-ui-kit": "^6.0.0",

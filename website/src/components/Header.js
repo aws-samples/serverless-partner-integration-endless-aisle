@@ -13,7 +13,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CartState } from "../context/Context";
 import "./styles.css";
 
-const Header = () => {
+const Header = ({ signOut }) => {
   const {
     state: { cart },
     dispatch,
@@ -95,6 +95,9 @@ const Header = () => {
               </Dropdown.Menu>
             </Dropdown>
           </Nav>)}
+        <Button color="inherit" onClick={signOut}>
+          Sign out
+        </Button>
       </Container>
     </Navbar>
   );

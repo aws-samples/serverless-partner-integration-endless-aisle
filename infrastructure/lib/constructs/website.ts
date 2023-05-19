@@ -5,11 +5,12 @@ import { Construct } from 'constructs';
 
 import { CloudFrontToS3 } from '@aws-solutions-constructs/aws-cloudfront-s3';
 import { WafwebaclToCloudFront } from "@aws-solutions-constructs/aws-wafwebacl-cloudfront";
-import { CfnOutput } from 'aws-cdk-lib';
+import { CfnOutput, Duration } from 'aws-cdk-lib';
 import { RestApi } from "aws-cdk-lib/aws-apigateway";
-import { GeoRestriction, OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
+import { GeoRestriction, HeadersReferrerPolicy, OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
 import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { HttpMethod } from "aws-cdk-lib/aws-lambda";
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import * as path from "path";
 
@@ -33,12 +34,42 @@ export class Website extends Construct {
     if (props.dnsname) {
       new CfnOutput(this, "distributionDNSurl", { value: props.dnsname });
     }
+    const allowedConnectDomains = [
+      "'self'",
+      "https://*.amazonaws.com",
+      "https://*.amazoncognito.com",
+      "https://*.cloudfront.net",
+      "https://cognito-identity.us-east-1.amazonaws.com"
+    ]
+    // Creating a custom response headers policy -- all parameters optional
+    const websiteResponseHeadersPolicyProps = {
+      responseHeadersPolicyName: 'WebsiteResponsePolicy',
+      comment: 'A default policy',
+      corsBehavior: {
+        accessControlAllowCredentials: false,
+        accessControlAllowHeaders: ['*'],
+        accessControlAllowMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS],
+        accessControlAllowOrigins: ['*'],
+        accessControlMaxAge: Duration.seconds(600),
+        originOverride: true,
+      },
+      securityHeadersBehavior: {
+        contentSecurityPolicy: {
+          contentSecurityPolicy: `default-src ${allowedConnectDomains.join(' ')}; connect-src ${allowedConnectDomains.join(' ')};`, override: true
+        },
+        contentTypeOptions: { override: true },
+        referrerPolicy: { referrerPolicy: HeadersReferrerPolicy.NO_REFERRER, override: true },
+        strictTransportSecurity: { accessControlMaxAge: Duration.seconds(600), includeSubdomains: true, override: true },
+      },
+    };
 
     const cloudfrontToS3 = new CloudFrontToS3(this, 'website-cloudfront-s3', {
       cloudFrontDistributionProps: {
         defaultRootObject: 'index.html',
         geoRestriction: GeoRestriction.allowlist("US")
-      }
+      },
+      responseHeadersPolicyProps: websiteResponseHeadersPolicyProps,
+      insertHttpSecurityHeaders: false
     });
 
     // This construct can only be attached to a configured CloudFront.
