@@ -9,7 +9,6 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/aws4": "*",
     "@types/node": "*"
   },
   "dependencies": {

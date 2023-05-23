@@ -14,6 +14,16 @@ export const cartReducer = (state, action) => {
           c.itemId === action.payload.itemId ? (c.qty = action.payload.qty) : c.qty
         ),
       };
+    case "ADD_CUSTOMER_DETAILS_FIRST_NAME":
+      return {
+        ...state,
+        customerDetails: { ...state.customerDetails, firstName: action.payload }
+      };
+    case "ADD_CUSTOMER_DETAILS_LAST_NAME":
+      return {
+        ...state,
+        customerDetails: { ...state.customerDetails, lastName: action.payload }
+      };
     case "ADD_CUSTOMER_DETAILS_EMAIL":
       return {
         ...state,
@@ -47,6 +57,8 @@ export const cartReducer = (state, action) => {
     case "CLEAR_CART":
       return {
         ...state, cart: [], customerDetails: {
+          fistName: '',
+          lastName: '',
           email: '',
           address: '',
           city: '',

@@ -1,7 +1,8 @@
 import { Col, Image, ListGroup, Row } from "react-bootstrap";
 const Orders = ({ orders }) => {
+    const address = JSON.parse(orders.subscribers[0].address);
     return (
-        <div className="productContainer">
+        <div className="orderContainer">
             <ListGroup>
                 <ListGroup.Item key={orders.product.itemId}>
                     <Row>
@@ -21,7 +22,14 @@ const Orders = ({ orders }) => {
                         </Col>
                         <Col md={2}> Price: ${orders.price}</Col>
                         <Col md={2}>
-                            Status: {orders.orderStatus}
+                            Contact Email: {orders.subscribers[0].email} <br />
+                            Name: {orders.subscribers[0].firstName} {orders.subscribers[0].lastName}<br />
+                            Address: <br />
+                            {address.address}<br />
+                            City: {address.city}<br />
+                            State: {address.state} <br />
+                            Postal Code: {address.postalCode}<br />
+                            Country: {address.country} <br />
                         </Col>
                         <Col md={2}>
                             Discription: {orders.statusDescription}
@@ -33,7 +41,7 @@ const Orders = ({ orders }) => {
                             Quantity: {orders.product.quantity}
                         </Col>
                         <Col md={2}>
-                            Contact: {orders.subscribers[0].email}
+                            Status: {orders.orderStatus}
                         </Col>
                     </Row>
                 </ListGroup.Item>

@@ -100,7 +100,7 @@ export const handler = async (event: SQSEvent) => {
             const orderId = data.data.orderId;
             return {
                 statusCode: 200,
-                message: `Order Placed for order id ${orderId} and reference item : ${requestedItem.itemId}`,
+                message: `Order Placed for order id ${orderId} with reference item ID : ${requestedItem.itemId}`,
                 orderId: `${orderId}`,
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,6 +154,9 @@ export const handler = async (event: SQSEvent) => {
             partner: requestedItem.partner,
             subscribers: [{
                 email: customer.email,
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                address: customer.address
             }]
         }
     }
