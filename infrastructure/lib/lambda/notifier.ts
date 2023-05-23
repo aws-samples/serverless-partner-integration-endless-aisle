@@ -7,7 +7,7 @@ import { DynamoDBStreamEvent } from 'aws-lambda';
 
 import * as AWS from 'aws-sdk';
 
-const SES_EMAIL_FROM = process.env.SES_EMAIL_FROM || "";
+const SES_EMAIL_FROM = process.env.STORE_EMAIL || "";
 
 export const handler = async (event: DynamoDBStreamEvent) => {
     if (!event.Records) {
@@ -32,8 +32,10 @@ export const handler = async (event: DynamoDBStreamEvent) => {
                     const orderId = newImage.orderId;
                     const statusDescription = newImage.statusDescription;
                     const email = newImage.subscribers[0].email;
+                    const name = `${newImage.subscribers[0].firstName} ${newImage.subscribers[0].lastName}`;
+                    const address = JSON.stringify(newImage.subscribers[0].address);
                     const partner = newImage.partner;
-                    console.log(`Email : ${email} \nOrderStatus : ${statusDescription} \nOrderId : ${orderId} \n`);
+                    console.log(`Email : ${email} \nOrderStatus : ${statusDescription} \nOrderId : ${orderId} \n name : ${name} \n Address: ${address} \n`);
 
                     if (!orderId || !email || !statusDescription || !partner)
                         throw new Error('Properties orderId, email, partner and message are required');
@@ -74,9 +76,10 @@ async function sendEmail(orderId: string, email: string, partner: string, orderS
 
     const template = `Hi ${partner}, \n\n Your customer with the email ${email} has placed an order with order id ${orderId} \n \n The status of the order has been updated to ${orderStatus}. \n \n Please connect with customer for further processings. \n \n Thanks, \n AnyCompany Team`;
 
+    const toAddresses = SES_EMAIL_FROM.split(',');
     const emailParams = {
         Destination: {
-            ToAddresses: [SES_EMAIL_FROM],
+            ToAddresses: toAddresses,
         },
         Message: {
             Body: {
@@ -84,7 +87,7 @@ async function sendEmail(orderId: string, email: string, partner: string, orderS
             },
             Subject: { Data: subject },
         },
-        Source: SES_EMAIL_FROM,
+        Source: toAddresses[0],
     };
 
     try {

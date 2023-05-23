@@ -11,6 +11,8 @@ const Context = ({ children }) => {
     products: products,
     cart: [],
     customerDetails: {
+      firstName: '',
+      lastName: '',
       email: '',
       address: '',
       city: '',

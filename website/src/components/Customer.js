@@ -27,6 +27,12 @@ function Customer() {
 
   const validate = () => {
     const errors = {};
+    if (!customerDetails.firstName) {
+      errors.firstName = "Please provide your First Name";
+    }
+    if (!customerDetails.lastName) {
+      errors.lastName = "Please provide your Last Name";
+    }
     if (!customerDetails.email) {
       errors.email = "Please provide your Email";
     }
@@ -83,7 +89,8 @@ function Customer() {
         },
         customer: {
           address: JSON.stringify({ address: customerDetails.address, city: customerDetails.city, state: customerDetails.state, country: customerDetails.country, postalCode: customerDetails.postalCode }),
-          contact: "test",
+          firstName: customerDetails.firstName,
+          lastName: customerDetails.lastName,
           email: customerDetails.email
         }
       }
@@ -111,6 +118,8 @@ function Customer() {
         <MDBCard className="mb-4">
           <MDBCardHeader className="py-3">
             <MDBTypography tag="h5" className="mb-0">Shipping details</MDBTypography>
+            {errors.firstName && <div><md-subheader class="md-no-sticky" style={{ color: 'red' }}>! {errors.firstName}</md-subheader></div>}
+            {errors.lastName && <div><md-subheader class="md-no-sticky" style={{ color: 'red' }}>! {errors.lastName}</md-subheader></div>}
             {errors.email && <div><md-subheader class="md-no-sticky" style={{ color: 'red' }}>! {errors.email}</md-subheader></div>}
             {errors.address && <div><md-subheader class="md-no-sticky" style={{ color: 'red' }}> ! {errors.address}</md-subheader></div>}
             {errors.city && <div><md-subheader class="md-no-sticky" style={{ color: 'red' }}>! {errors.city}</md-subheader></div>}
@@ -120,6 +129,36 @@ function Customer() {
           </MDBCardHeader>
           <MDBCardBody>
             <form className="mb-0" noValidate onSubmit={handleSubmit} >
+              <MDBRow className="mb-4">
+                <MDBCol>
+                  <MDBInput label='Fisrt Name' type='text' className="mb-4" name="firstName"
+                    onChange={(e) => {
+                      dispatch({
+                        type: "ADD_CUSTOMER_DETAILS_FIRST_NAME",
+                        payload: e.target.value,
+                      });
+                    }}
+                    size="sm"
+                    value={customerDetails.firstName}
+                    required
+                    invalid={MDBInput.invalid}
+                    validation="Please provide your First Name" />
+                </MDBCol>
+                <MDBCol>
+                  <MDBInput label='Last Name' type='text' className="mb-4" name="lastName"
+                    onChange={(e) => {
+                      dispatch({
+                        type: "ADD_CUSTOMER_DETAILS_LAST_NAME",
+                        payload: e.target.value,
+                      });
+                    }}
+                    size="sm"
+                    value={customerDetails.lastName}
+                    required
+                    invalid={MDBInput.invalid}
+                    validation="Please provide your Last Name" />
+                </MDBCol>
+              </MDBRow>
               <MDBRow className="mb-4">
                 <MDBCol>
                   <MDBInput label='Email' type='email' className="mb-4" name="email"

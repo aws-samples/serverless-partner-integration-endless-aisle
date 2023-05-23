@@ -47,6 +47,8 @@ export interface CustomerAddress {
 
 export interface Customer {
     email: string,
+    firstName?: string,
+    lastName?: string,
     address?: CustomerAddress
 }
 

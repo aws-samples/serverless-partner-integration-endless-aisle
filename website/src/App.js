@@ -10,15 +10,16 @@ import Order from "./components/Order";
 import { Amplify, Auth } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
 import { Authenticator } from '@aws-amplify/ui-react';
+import config from './config';
 
 function App() {
   const amplifyConfig = {
-    ...(true || process.env.REACT_APP_USER_POOL_ID != null
+    ...(true || config.userPoolId != null
       ? {
         Auth: {
-          region: process.env.REACT_APP_AWS_REGION,
-          userPoolId: process.env.REACT_APP_USER_POOL_ID,
-          userPoolWebClientId: process.env.REACT_APP_USER_POOL_CLIENT_ID,
+          region: config.awsRegion,
+          userPoolId: config.userPoolId,
+          userPoolWebClientId: config.userPoolClientId,
         },
       }
       : {}),
@@ -26,7 +27,7 @@ function App() {
       endpoints: [
         {
           name: 'orders',
-          endpoint: process.env.REACT_APP_API_URL,
+          endpoint: config.apiEndpoint,
           custom_header: async () => {
             return {
               Authorization: `${(await Auth.currentSession())?.getAccessToken().getJwtToken()}`

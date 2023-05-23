@@ -32,7 +32,7 @@ export interface ItemApiProps {
     PARTNER_TABLE_NAME: string;
     TOKEN_PATH: string;
   },
-  readonly VERIFIED_EMAIL?: string;
+  readonly STORE_EMAIL?: string;
 
   readonly congitoToApiGwToLambdaRestApi: RestApi,
   cloudWatchPolicyStatement: PolicyStatement
@@ -50,7 +50,7 @@ export class ItemApiConstruct extends Construct {
 
 
     const SES_REGION = props.env?.region || 'us-east-1';
-    const SES_EMAIL_FROM = props.VERIFIED_EMAIL;
+    const STORE_EMAIL = props.STORE_EMAIL;
     // /**
     //  * Item method
     //  *  Creating and Lambda functions to get Items by ID or SKU
@@ -112,7 +112,7 @@ export class ItemApiConstruct extends Construct {
         timeout: Duration.seconds(15),
         environment: {
           ...props.lambdaEnviroment,
-          SES_EMAIL_FROM: SES_EMAIL_FROM || ""
+          STORE_EMAIL: STORE_EMAIL || ""
         }
       },
       existingTableObj: props.partnertable
@@ -134,33 +134,33 @@ export class ItemApiConstruct extends Construct {
         }
       }
     });
-    if (SES_EMAIL_FROM) {
+    if (STORE_EMAIL) {
       const region = props.env.region;
 
       new EmailIdentity(this, 'Identity', {
-        identity: Identity.email(SES_EMAIL_FROM)
+        identity: Identity.email(STORE_EMAIL)
       });
-      new AwsCustomResource(this, 'VerifyEmailIdentity' + SES_EMAIL_FROM, {
+      new AwsCustomResource(this, 'VerifyEmailIdentity' + STORE_EMAIL, {
         onCreate: {
           service: 'SES',
           action: 'verifyEmailIdentity',
           parameters: {
-            EmailAddress: SES_EMAIL_FROM,
+            EmailAddress: STORE_EMAIL,
           },
-          physicalResourceId: PhysicalResourceId.of('verify-' + SES_EMAIL_FROM),
+          physicalResourceId: PhysicalResourceId.of('verify-' + STORE_EMAIL),
           region,
         },
         onDelete: {
           service: 'SES',
           action: 'deleteIdentity',
           parameters: {
-            Identity: SES_EMAIL_FROM,
+            Identity: STORE_EMAIL,
           },
           region,
         },
         policy: generateSesPolicyForCustomResource('VerifyEmailIdentity', 'DeleteIdentity'),
       });
-      const SES_EMAIL_DOMAIN = SES_EMAIL_FROM.split('@')[1];
+      const SES_EMAIL_DOMAIN = STORE_EMAIL.split('@')[1];
 
       // 👇 Add permissions to the Lambda function to send Emails
       orderStatus.lambdaFunction.addToRolePolicy(
