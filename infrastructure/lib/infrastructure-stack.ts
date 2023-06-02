@@ -2,10 +2,10 @@ import { CognitoToApiGatewayToLambda } from '@aws-solutions-constructs/aws-cogni
 import { WafwebaclToApiGateway } from '@aws-solutions-constructs/aws-wafwebacl-apigateway';
 import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { UserPool, UserPoolClient, UserPoolDomain } from 'aws-cdk-lib/aws-cognito';
+import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Code, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { ParameterTier, StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { APIGatewayConstruct } from './common/apigateway/apiGateway';
@@ -14,19 +14,17 @@ import { DDBTableConstructs } from './constructs/ddb-tables';
 import { Frontend } from './constructs/frontend';
 import { ItemApiConstruct } from './constructs/item-api';
 import { OrderApiConstruct } from './constructs/order-api';
-import crypto = require('crypto');
 // Properties for the ordering-stack
 
 export class InfrastructureStack extends Stack {
   readonly userPool: UserPool;
   readonly client: UserPoolClient;
   readonly apigw: RestApi;
-  readonly endlessuserPoolDomain: UserPoolDomain;
 
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id);
 
-    const TokenPath = '/partnersite/token';
+    const TokenPath = 'partnerToken'
     /** Create Cloudwatch Policy for Lambda */
 
     const cloudWatchPolicyStatement = new PolicyStatement({
@@ -86,6 +84,7 @@ export class InfrastructureStack extends Stack {
       },
       cognitoUserPoolClientProps: {
         generateSecret: false,
+        refreshTokenValidity: Duration.hours(2),
         oAuth: {
           flows: {
             authorizationCodeGrant: false,
@@ -94,15 +93,6 @@ export class InfrastructureStack extends Stack {
             refreshTokens: true
           }
         }
-      }
-    });
-
-    const domainPrefix = "endlessaisle"
-
-    const endlessuserPoolDomain = new UserPoolDomain(this, `endless-aisle-user-pool-domain`, {
-      userPool: congitoToApiGwToLambda.userPool,
-      cognitoDomain: {
-        domainPrefix: domainPrefix
       }
     });
 
@@ -178,24 +168,9 @@ export class InfrastructureStack extends Stack {
     this.userPool = congitoToApiGwToLambda.userPool;
     this.client = congitoToApiGwToLambda.userPoolClient;
     this.apigw = congitoToApiGwToLambda.apiGateway;
-    this.endlessuserPoolDomain = endlessuserPoolDomain;
 
-
-    const generatePassword = (
-      length = 8,
-      wishlist = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-    ) =>
-      Array.from(crypto.randomFillSync(new Uint32Array(length)))
-        .map((x) => wishlist[x % wishlist.length])
-        .join('')
-
-    const accessTokenString = process.env.PARTNER_ACCESS_TOKEN ? process.env.PARTNER_ACCESS_TOKEN : generatePassword();
-    const accessToken = new StringParameter(this, 'partnerAccessToken', {
-      parameterName: TokenPath,
-      stringValue: accessTokenString,
-      description: 'the token is used to test API',
-      tier: ParameterTier.STANDARD,
-      allowedPattern: '.*',
+    const accessToken = new Secret(this, "partnerToken", {
+      secretName: TokenPath
     });
     accessToken.grantRead(partnerInventoryApi.inventoryLambda);
     accessToken.grantRead(orderapi.createOrderLambda);
@@ -232,7 +207,8 @@ export class InfrastructureStack extends Stack {
       { id: 'AwsSolutions-CFR4', reason: 'Since the distribution uses the CloudFront domain name, CloudFront automatically sets the security policy to TLSv1 regardless of the value of MinimumProtocolVersion' },
       { id: 'AwsSolutions-L1', reason: 'AWS Cloudformation custom resource creates Nodev16 version lambda instead of Node18' },
       { id: 'AwsSolutions-APIG4', reason: 'Options methods are not not behind Authorizer' },
-      { id: 'AwsSolutions-COG4', reason: 'Options method are not not behind Authorizer' }
+      { id: 'AwsSolutions-COG4', reason: 'Options method are not not behind Authorizer' },
+      { id: 'AwsSolutions-SMG4', reason: 'Rotation of Demo Secrets for Partner API is skipped.' },
     ], true);
   }
 }
