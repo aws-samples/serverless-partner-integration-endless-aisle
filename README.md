@@ -39,7 +39,6 @@ npm install -g aws-cdk
 ```bash
 cd serveless-partner-integration-endless-aisle/website
 npm install
-npm run build
 ```
 
 3. Here we will install required packages for our Lambda code.
@@ -53,7 +52,7 @@ npm install
 
 ```bash
 
-cd serveless-partner-integration-endless-aisle/infrastructure
+cd ../../../infrastructure
 npm install
 npm run build
 ```
