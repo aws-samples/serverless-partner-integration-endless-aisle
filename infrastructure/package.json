@@ -36,7 +36,7 @@
     "@aws-solutions-constructs/aws-lambda-dynamodb": "^2.39.0",
     "@aws-solutions-constructs/aws-wafwebacl-apigateway": "^2.39.0",
     "@aws-solutions-constructs/aws-wafwebacl-cloudfront": "^2.39.0",
-    "aws-cdk-lib": "^2.78.0",
+    "aws-cdk-lib": "^2.80.0",
     "constructs": "^10.2.16",
     "deploy-time-build": "^0.3.1",
     "source-map-support": "^0.5.21"
