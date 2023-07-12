@@ -42,7 +42,7 @@ export class InfrastructureStack extends Stack {
      * Create Partner API Mock versions
      */
     const partnerInventoryApi = new APIGatewayConstruct(this, 'partnerInventoryApi', {
-      apiname: 'mockInventory',
+      apiname: 'mock-inventory-api',
       cloudWatchPolicyStatement: cloudWatchPolicyStatement,
       TOKEN_PATH: TokenPath,
       webacl: webacl.wafwebacl
@@ -63,12 +63,15 @@ export class InfrastructureStack extends Stack {
     // Setup the API with Cognito user pool
     const congitoToApiGwToLambda = new CognitoToApiGatewayToLambda(this, 'endless-aisle-api', {
       lambdaFunctionProps: {
+        functionName: `endless-aisle-cognito-lambda`,
+        description: `Lambda Function to handle authorization for endless aisle requests.`,
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/lambda/`),
         handler: 'cognito.handler',
         timeout: Duration.seconds(15),
       },
       apiGatewayProps: {
+        restApiName: "endless-aisle-api",
         proxy: false,
         description: 'Endless Aisle handler API'
       },
@@ -186,7 +189,7 @@ export class InfrastructureStack extends Stack {
       backendApi: this.apigw.url,
     });
 
-    new CfnOutput(this, "domainurl", { value: `${wafwebaclToCloudFrontToS3.cloudFrontWebDistribution.distributionDomainName}` });
+    new CfnOutput(this, "cloudfrontURL", { value: `${wafwebaclToCloudFrontToS3.cloudFrontWebDistribution.distributionDomainName}` });
 
 
     new CfnOutput(this, 'userPoolId', {

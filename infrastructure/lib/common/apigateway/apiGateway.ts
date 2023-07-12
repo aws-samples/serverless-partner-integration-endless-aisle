@@ -43,6 +43,8 @@ export class APIGatewayConstruct extends Construct {
 
     // A Lambda function to get inventory from partner
     const inventoryHandler = new Function(this, `${props.apiname}Lambda`, {
+      functionName: `partner-inventory-lambda`,
+      description: `Lambda Function to get items and post order to partner endpoint.`,
       runtime: Runtime.NODEJS_18_X,
       code: Code.fromAsset(`${__dirname}/../../lambda/`),
       handler: 'inventory.handler',
@@ -56,10 +58,12 @@ export class APIGatewayConstruct extends Construct {
     // add the policy to the Function's role
     partnerInventoryRole.addToPrincipalPolicy(props.cloudWatchPolicyStatement);
 
-    const partnerCustomAuthHandler = new Function(this, `${props.apiname}-partner-cognito-Lambda`, {
+    const partnerCustomAuthHandler = new Function(this, `${props.apiname}-partner-auth-Lambda`, {
+      functionName: `partner-auth-lambda`,
+      description: `Lambda Function to handle authorization for partner requests.`,
       runtime: Runtime.NODEJS_18_X,
       code: Code.fromAsset(`${__dirname}/../../lambda/`),
-      handler: 'partnerCognito.handler',
+      handler: 'partnerAuth.handler',
       role: partnerInventoryRole,
       environment: {
         TOKEN_PATH: props.TOKEN_PATH

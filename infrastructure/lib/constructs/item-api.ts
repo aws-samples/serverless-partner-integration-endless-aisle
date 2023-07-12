@@ -63,6 +63,8 @@ export class ItemApiConstruct extends Construct {
     // // A Lambda function that gets an item from the database
     const getItem = new LambdaToDynamoDB(this, 'get-item', {
       lambdaFunctionProps: {
+        functionName: `endless-aisle-getItem-lambda`,
+        description: `Lambda Function to get item availability.`,
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/../lambda/`),
         handler: 'getItem.handler',
@@ -106,6 +108,8 @@ export class ItemApiConstruct extends Construct {
 
     const orderStatus = new LambdaToDynamoDB(this, 'notifier-order-status', {
       lambdaFunctionProps: {
+        functionName: `endless-aisle-notifier-lambda`,
+        description: `Lambda Function to notify store associate about order placements.`,
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/../lambda/`),
         handler: 'notifier.handler',
@@ -120,6 +124,7 @@ export class ItemApiConstruct extends Construct {
 
     orderStatus.lambdaFunction.addToRolePolicy(props.cloudWatchPolicyStatement);
     const orderStatusdlq = new Queue(this, "notifier-order-status-DLQ", {
+      queueName: `notify-order-dlqueue`,
       enforceSSL: true
     })
 
@@ -128,6 +133,7 @@ export class ItemApiConstruct extends Construct {
       existingTableInterface: props.ordertable,
       deploySqsDlqQueue: true,
       sqsDlqQueueProps: {
+        queueName: `notify-order-queue`,
         deadLetterQueue: {
           maxReceiveCount: 1,
           queue: orderStatusdlq

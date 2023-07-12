@@ -70,21 +70,6 @@ GET
 https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/1?partner=Partner1
 ```
 
-- Patch Order api /orders/{id} PATCH
-
-```bash
-- HTTP Method 
-    PATCH
-
-- URL: 
-    https://<REST-API-ID>.execute-api.<AWS-REGION>.amazonaws.com/prod/orders/:orderId
-```
-
-BODY
-```json
-    {"partnerId":"1","orderStatus":"Completed"}
-```
-
 --- 
 Item API
 
