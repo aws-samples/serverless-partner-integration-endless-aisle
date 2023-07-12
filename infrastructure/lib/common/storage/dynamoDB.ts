@@ -31,6 +31,7 @@ export class DDBTable extends Construct {
 
     // Setup the database ----------------------------------------------------------------------------------------------
     this.table = new ddb.Table(this, `${props.tablename}-table`, {
+      tableName: `${props.tablename}-table`,
       partitionKey: props.primaryKey,
       billingMode: ddb.BillingMode.PROVISIONED,
       removalPolicy: RemovalPolicy.DESTROY,

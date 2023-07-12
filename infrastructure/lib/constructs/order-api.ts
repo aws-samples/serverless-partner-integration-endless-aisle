@@ -9,7 +9,7 @@ import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk
 import { Code, EventSourceMapping, HttpMethod, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
-import { CreateOrderSchema, GetOrderSchema, UpdateOrderSchema } from '../schema/apischema';
+import { CreateOrderSchema, GetOrderSchema } from '../schema/apischema';
 
 // Properties for the ordering-stack
 export interface OrderApiProps {
@@ -53,6 +53,8 @@ export class OrderApiConstruct extends Construct {
 
     const createOrder = new LambdaToDynamoDB(this, 'create-order', {
       lambdaFunctionProps: {
+        functionName: `endless-aisle-createOrder-lambda`,
+        description: `Lambda Function to create orders by calling partner endpoints.`,
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/../lambda/`),
         handler: 'createOrder.handler',
@@ -92,9 +94,11 @@ export class OrderApiConstruct extends Construct {
     const order = orders.addResource('{id}');
 
     const orderdlq = new Queue(this, "Order-DLQ", {
+      queueName: `create-order-dlq`,
       enforceSSL: true
     })
     const orderqueue = new Queue(this, 'OrderQueue', {
+      queueName: `create-order-queue`,
       deadLetterQueue: {
         maxReceiveCount: 1,
         queue: orderdlq
@@ -180,6 +184,8 @@ export class OrderApiConstruct extends Construct {
     // A Lambda function that gets an order from the database
     const getOrder = new LambdaToDynamoDB(this, 'get-order', {
       lambdaFunctionProps: {
+        functionName: `endless-aisle-getOrder-lambda`,
+        description: `Lambda Function to get order information from DB.`,
         runtime: Runtime.NODEJS_18_X,
         code: Code.fromAsset(`${__dirname}/../lambda/`),
         handler: 'getOrder.handler',
@@ -226,51 +232,6 @@ export class OrderApiConstruct extends Construct {
       }, { statusCode: '400' }, { statusCode: '500' }]
     });
 
-    // A Lambda function that updates an order from the database
-    const updateOrder = new LambdaToDynamoDB(this, 'update-order', {
-      lambdaFunctionProps: {
-        runtime: Runtime.NODEJS_18_X,
-        code: Code.fromAsset(`${__dirname}/../lambda/`),
-        handler: 'updateOrder.handler',
-        timeout: Duration.seconds(15),
-        environment: props.lambdaEnviroment
-      },
-      existingTableObj: props.ordertable
-    });
-
-    updateOrder.lambdaFunction.role?.attachInlinePolicy(props.cloudWatchPolicy);
-
-    props.partnertable.grantReadData(updateOrder.lambdaFunction);
-
-    const updateOrderByIdIntegration = new LambdaIntegration(updateOrder.lambdaFunction);
-
-    const updateOrderRequestModel = new Model(this, "update-order-request-model", {
-      restApi: props.congitoToApiGwToLambdaRestApi,
-      contentType: "application/json",
-      description: "To validate the request body",
-      modelName: "updateOrdermodel",
-      schema: UpdateOrderSchema
-    });
-
-    const updateOrderRequestModelOption: MethodOptions = {
-      authorizationType: AuthorizationType.COGNITO,
-      authorizationScopes: ['email', 'openid', 'aws.cognito.signin.user.admin'],
-      requestParameters: {
-        "method.request.path.id": true,
-      },
-      requestModels: {
-        "application/json": updateOrderRequestModel,
-      },
-      methodResponses: [{
-        statusCode: '200', responseParameters: {
-          "method.response.header.Access-Control-Allow-Headers": true,
-          "method.response.header.Access-Control-Allow-Methods": true,
-          "method.response.header.Access-Control-Allow-Origin": true
-        }
-      }, { statusCode: '400' }, { statusCode: '500' }]
-    }
-
     this.createOrderLambda = createOrder.lambdaFunction;
-    order.addMethod("PATCH", updateOrderByIdIntegration, updateOrderRequestModelOption);
   }
 }
