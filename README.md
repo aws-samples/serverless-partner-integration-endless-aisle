@@ -55,7 +55,7 @@ Alternatively, you can perform the same steps one by as by as provided in subsqu
 cd serveless-partner-integration-endless-aisle/website
 npm install
 ```
-1. Here we will install required packages, build infrastructure code, and Lambda code.
+2. Here we will install required packages, build infrastructure code, and Lambda code.
 
 ```bash
 cd ../infrastructure
