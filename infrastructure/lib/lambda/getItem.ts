@@ -1,11 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import * as AWS from 'aws-sdk';
 import axios from 'axios';
 import { getParamFromSSM } from './utils/getParameter';
-const docClient = new AWS.DynamoDB.DocumentClient();
 
+const docClient = DynamoDBDocument.from(new DynamoDB({}));
 const PARTNER_TABLE_NAME = process.env.PARTNER_TABLE_NAME || '';
 const PARTNER_TABLE_PK = process.env.PARTNER_TABLE_PK || '';
 
@@ -57,7 +58,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 TableName: PARTNER_TABLE_NAME,
                 Key: key
             }
-            const partnerInfo = await docClient.get(params).promise().then((data) => {
+            const partnerInfo = await docClient.get(params).then((data) => {
                 return data.Item
             }).catch((err) => {
                 throw new Error(`Failed to get partner info ${err}`);

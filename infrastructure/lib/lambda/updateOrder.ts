@@ -1,6 +1,8 @@
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import * as AWS from 'aws-sdk';
-const docClient = new AWS.DynamoDB.DocumentClient();
+
+const docClient = DynamoDBDocument.from(new DynamoDB({}));
 
 const ORDER_TABLE_NAME = process.env.ORDER_TABLE_NAME || '';
 const ORDER_TABLE_PK = process.env.ORDER_TABLE_PK || '';
@@ -77,7 +79,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 params.ExpressionAttributeValues[`:${property}`] = editedItem[property];
             });
 
-            const orderInfo = await docClient.update(params).promise().then((data) => {
+            const orderInfo = await docClient.update(params).then((data) => {
                 return data
             }).catch((err) => {
                 throw new Error(`Failed to get order info ${err}`);

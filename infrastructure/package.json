@@ -6,6 +6,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "package": "npm ci && cd lib/lambda  && npm run package && cd ../../ && npm run build && cdk synth InfrastructureStack",
+    "clean": "rm -rf node_modules && rm -rf cdk.out && rm */*.d.ts && rm */*.js && rm */*/*.d.ts && rm */*/*.js && rm */*/*/*.d.ts && rm */*/*/*.js && cd lib/lambda && rm -rf node_modules",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
@@ -30,6 +32,10 @@
     "typescript": "~4.9.5"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.370.0",
+    "@aws-sdk/client-ses": "^3.370.0",
+    "@aws-sdk/lib-dynamodb": "^3.370.0",
+    "@aws-sdk/util-dynamodb": "^3.370.0",
     "@aws-solutions-constructs/aws-cloudfront-s3": "^2.39.0",
     "@aws-solutions-constructs/aws-cognito-apigateway-lambda": "^2.39.0",
     "@aws-solutions-constructs/aws-dynamodbstreams-lambda": "^2.39.0",
