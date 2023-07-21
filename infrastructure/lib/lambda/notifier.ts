@@ -5,7 +5,9 @@
 
 import { DynamoDBStreamEvent } from 'aws-lambda';
 
-import * as AWS from 'aws-sdk';
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
+import { SES } from "@aws-sdk/client-ses";
+import { unmarshall } from "@aws-sdk/util-dynamodb";
 
 const SES_EMAIL_FROM = process.env.STORE_EMAIL || "";
 
@@ -24,8 +26,8 @@ export const handler = async (event: DynamoDBStreamEvent) => {
                     return { statusCode: 400, body: 'invalid request, missing the parameters in body' };
                 });
             } else {
-                const newImage = AWS.DynamoDB.Converter.unmarshall(
-                    record.dynamodb.NewImage as { [key: string]: AWS.DynamoDB.AttributeValue }
+                const newImage = unmarshall(
+                    record.dynamodb.NewImage as { [key: string]: AttributeValue }
                 );
                 try {
 
@@ -70,9 +72,7 @@ export type ContactDetails = {
 async function sendEmail(orderId: string, email: string, partner: string, orderStatus: string) {
     const subject = `${partner} order ${orderId} status updated`;
 
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' }
-    );
-    ses.config.update({ region: process.env.AWS_REGION });
+    const ses = new SES({ apiVersion: '2010-12-01', region: process.env.AWS_REGION });
 
     const template = `Hi ${partner}, \n\n Your customer with the email ${email} has placed an order with order id ${orderId} \n \n The status of the order has been updated to ${orderStatus}. \n \n Please connect with customer for further processings. \n \n Thanks, \n AnyCompany Team`;
 
@@ -91,7 +91,7 @@ async function sendEmail(orderId: string, email: string, partner: string, orderS
     };
 
     try {
-        const key = await ses.sendEmail(emailParams).promise();
+        const key = await ses.sendEmail(emailParams);
         console.log("MAIL SENT SUCCESSFULLY!!" + JSON.stringify(key));
     } catch (e) {
         console.log("FAILURE IN SENDING MAIL!!", e);

@@ -1,12 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 import { SQSEvent, SQSRecord } from 'aws-lambda';
-import * as AWS from 'aws-sdk';
 import axios from 'axios';
 import { getParamFromSSM } from './utils/getParameter';
 import { ItemRequestSchema, OrderSchema, OrderStatus } from "./utils/schema";
 
-const docClient = new AWS.DynamoDB.DocumentClient();
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+
+const docClient = DynamoDBDocument.from(new DynamoDB({}));
 
 const PARTNER_TABLE_NAME = process.env.PARTNER_TABLE_NAME || '';
 const ORDER_TABLE_NAME = process.env.ORDER_TABLE_NAME || '';
@@ -44,7 +46,7 @@ export const handler = async (event: SQSEvent) => {
             [PARTNER_TABLE_PK]: requestedItem.partnerId,
         }
     }
-    const partnerInfo = await docClient.get(params).promise().then((data) => {
+    const partnerInfo = await docClient.get(params).then((data) => {
         return data.Item
     }).catch((err) => {
         throw new Error(`Failed to get partner info ${err}`);
@@ -160,7 +162,7 @@ export const handler = async (event: SQSEvent) => {
             }]
         }
     }
-    const response = await docClient.put(reqParams).promise().then((res) => {
+    const response = await docClient.put(reqParams).then((res) => {
         return res.Attributes
     }).catch((err) => {
         throw new Error(`Failed to store data in DDB for order info ${err}`);
