@@ -4,7 +4,7 @@
   "description": "Code for all lambda handlers",
   "scripts": {
     "build": "tsc",
-    "package": "npm ci && npm run build",
+    "package": "npm install && npm run build",
     "clean": "rm -rf node_modules && rm */*.d.ts && rm */*.js"
   },
   "author": "",
