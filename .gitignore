@@ -1,2 +1,4 @@
 node_modules
 .DS_Store
+infrastructure/lib/lambda/package-lock.json
+infrastructure/package-lock.json
