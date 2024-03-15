@@ -70,7 +70,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 Key: key,
                 UpdateExpression: `set ${firstProperty} = :${firstProperty}`,
                 ExpressionAttributeValues: {},
-                ReturnValues: 'UPDATED_NEW'
+                ReturnValues: 'UPDATED_NEW' as const
             }
             params.ExpressionAttributeValues[`:${firstProperty}`] = editedItem[`${firstProperty}`];
 
