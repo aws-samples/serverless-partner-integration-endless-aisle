@@ -59,7 +59,7 @@ npm install
 
 ```bash
 cd ../infrastructure
-npm run pacakge
+npm run package
 
 
 ## Synthesize Cloudformation Template
