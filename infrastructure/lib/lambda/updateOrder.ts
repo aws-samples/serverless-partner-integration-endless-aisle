@@ -1,5 +1,5 @@
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocument, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 const docClient = DynamoDBDocument.from(new DynamoDB({}));
@@ -65,19 +65,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             const firstProperty = editedItemProperties.splice(0, 1);
 
             const key = { [ORDER_TABLE_PK]: orderId }
-            const params = {
+            const updateExpressions : string[] = [];
+            const expressionAttributeValues: { [key: string]: any } = {};
+            Object.entries(editedItem).forEach(([property, value]) => {
+                updateExpressions.push(`${property} = :${property}`);
+                expressionAttributeValues[`:${property}`] = value;
+            });
+            const params: UpdateCommandInput = {
                 TableName: ORDER_TABLE_NAME,
                 Key: key,
-                UpdateExpression: `set ${firstProperty} = :${firstProperty}`,
-                ExpressionAttributeValues: {},
+                UpdateExpression: `set ${updateExpressions.join(', ')}`,
+                ExpressionAttributeValues: expressionAttributeValues,
                 ReturnValues: 'UPDATED_NEW'
-            }
-            params.ExpressionAttributeValues[`:${firstProperty}`] = editedItem[`${firstProperty}`];
-
-            editedItemProperties.forEach(property => {
-                params.UpdateExpression += `, ${property} = :${property}`;
-                params.ExpressionAttributeValues[`:${property}`] = editedItem[property];
-            });
+            };
 
             const orderInfo = await docClient.update(params).then((data) => {
                 return data
