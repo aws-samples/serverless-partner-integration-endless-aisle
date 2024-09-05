@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@aws-amplify/ui-react": "5.3.0",
-    "aws-amplify": "5.3.11",
+    "aws-amplify": "5.3.21",
     "bootstrap": "5.3.2",
     "dotenv": "^16.3.1",
     "mdb-react-ui-kit": "^6.3.0",
