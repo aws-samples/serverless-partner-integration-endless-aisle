@@ -51,16 +51,16 @@ Alternatively, you can perform the same steps one by as by as provided in subsqu
 1. We will build website package to generate deployable website static content.
 
 ```bash
-
 cd serveless-partner-integration-endless-aisle/website
 npm install
 ```
+
 2. Here we will install required packages, build infrastructure code, and Lambda code.
 
 ```bash
 cd ../infrastructure
-npm run pacakge
-
+npm run package
+```
 
 ## Synthesize Cloudformation Template
 

@@ -1,5 +1,6 @@
-import { RemovalPolicy, Stack } from 'aws-cdk-lib';
-import { CloudFrontWebDistribution, OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
+import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { AccessLevel, Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
+import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { BlockPublicAccess, Bucket, BucketEncryption, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
@@ -16,7 +17,7 @@ export interface FrontendProps {
 }
 
 export class Frontend extends Construct {
-  readonly cloudFrontWebDistribution: CloudFrontWebDistribution;
+  readonly cloudFrontWebDistribution: Distribution;
   constructor(scope: Construct, id: string, props: FrontendProps) {
     super(scope, id);
 
@@ -38,38 +39,30 @@ export class Frontend extends Construct {
     });
 
     const originAccessIdentity = new OriginAccessIdentity(this, 'OriginAccessIdentity');
-    const distribution = new CloudFrontWebDistribution(this, 'Distribution', {
-      originConfigs: [
-        {
-          s3OriginSource: {
-            s3BucketSource: assetBucket,
-            originAccessIdentity,
-          },
-          behaviors: [
-            {
-              isDefaultBehavior: true,
-            },
-          ],
-        },
-      ],
-      errorConfigurations: [
-        {
-          errorCode: 404,
-          errorCachingMinTtl: 0,
-          responseCode: 200,
-          responsePagePath: '/',
-        },
-        {
-          errorCode: 403,
-          errorCachingMinTtl: 0,
-          responseCode: 200,
-          responsePagePath: '/',
-        },
-      ],
-      loggingConfig: {
-        bucket: accessLogBucket,
-        prefix: 'Frontend/',
+    const distribution = new Distribution(this, 'Distribution', {
+      defaultBehavior: {
+        origin: S3BucketOrigin.withOriginAccessControl(assetBucket, {
+          originAccessLevels: [AccessLevel.READ, AccessLevel.LIST],
+}),
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
+      errorResponses: [
+        {
+          httpStatus: 404,
+          ttl: Duration.seconds(0),
+          responseHttpStatus: 200,
+          responsePagePath: '/',
+        },
+        {
+          httpStatus: 403,
+          ttl: Duration.seconds(0),
+          responseHttpStatus: 200,
+          responsePagePath: '/',
+        },
+      ],
+      logBucket: accessLogBucket,
+      logFilePrefix: 'Frontend/',
+      enableLogging: true,
     });
 
     new NodejsBuild(this, 'ReactBuild', {
